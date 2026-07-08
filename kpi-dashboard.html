@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采购 KPI 仪表盘 · 2026年6月</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background:#f5f7fa; color:#1a1a2e; padding:24px;
+  }
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:8px; }
+  .header h1 { font-size:22px; font-weight:700; }
+  .header h1 span { color:#6c63ff; }
+  .header .date { color:#6b7280; font-size:13px; }
+  .summary-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:24px; }
+  .summary-card {
+    background:#fff; border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.06);
+    border-top:4px solid #6c63ff;
+  }
+  .summary-card .top { display:flex; justify-content:space-between; align-items:start; }
+  .summary-card .label { font-size:12px; color:#6b7280; margin-bottom:2px; }
+  .summary-card .value { font-size:28px; font-weight:700; }
+  .summary-card .target { font-size:11px; margin-top:4px; }
+  .summary-card .trend { font-size:11px; font-weight:500; padding:1px 6px; border-radius:4px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  .row-full { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  .card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+  .card h3 { font-size:14px; font-weight:600; margin-bottom:14px; color:#374151; }
+  .card h3 small { font-weight:400; font-size:11px; color:#9ca3af; margin-left:6px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; padding:7px 5px; color:#6b7280; font-weight:500; border-bottom:1px solid #e5e7eb; }
+  td { padding:7px 5px; border-bottom:1px solid #f3f4f6; }
+  .tag { display:inline-block; padding:1px 8px; border-radius:999px; font-size:10px; font-weight:500; }
+  .tag.green { background:#d1fae5; color:#065f46; }
+  .tag.yellow { background:#fef3c7; color:#92400e; }
+  .tag.red { background:#fee2e2; color:#991b1b; }
+  .tag.blue { background:#dbeafe; color:#1e40af; }
+  .progress-bar { height:8px; border-radius:4px; background:#e5e7eb; overflow:hidden; margin-top:6px; }
+  .progress-fill { height:100%; border-radius:4px; transition:width 0.5s; }
+  .chart-area { height:200px; position:relative; }
+  .chart-area svg { width:100%; height:100%; }
+  .legend { display:flex; gap:12px; font-size:11px; color:#6b7280; flex-wrap:wrap; margin-top:6px; }
+  .legend-item { display:flex; align-items:center; gap:4px; }
+  .actions { display:flex; gap:8px; margin-top:14px; }
+  .actions button { padding:8px 18px; border:none; border-radius:8px; font-size:12px; font-weight:500; cursor:pointer; transition:all .15s; }
+  .actions button.primary { background:#6c63ff; color:#fff; }
+  .actions button.primary:hover { background:#5a52e0; }
+  .actions button.secondary { background:#e5e7eb; color:#374151; }
+  .actions button.secondary:hover { background:#d1d5db; }
+  .actions button.success { background:#10b981; color:#fff; }
+  .actions button.success:hover { background:#059669; }
+  .section-title { font-size:14px; font-weight:600; color:#374151; margin:20px 0 12px; display:flex; align-items:center; gap:6px; }
+  .alert-item { display:flex; align-items:start; gap:8px; padding:8px 0; border-bottom:1px solid #f3f4f6; font-size:12px; }
+  .alert-item:last-child { border-bottom:none; }
+  .alert-icon { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
+  @media (max-width:768px) {
+    .row, .row-full { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📊 采购 <span>KPI</span> 仪表盘</h1>
+    <div style="font-size:12px;color:#6b7280;margin-top:2px;">电子元器件 · 2026年6月</div>
+  </div>
+  <div class="date" id="currentDate"></div>
+</div>
+
+<div class="summary-row">
+  <div class="summary-card" style="border-top-color:#6c63ff;">
+    <div class="top">
+      <div><div class="label">💰 降本达成率</div><div class="value">87%</div></div>
+      <span class="tag yellow">距目标差 13%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:87%;background:#6c63ff;"></div></div>
+    <div class="target">目标 ¥120K · 已完成 ¥104.4K · 同比上月 ↑5%</div>
+  </div>
+
+  <div class="summary-card" style="border-top-color:#10b981;">
+    <div class="top">
+      <div><div class="label">🚚 OTD 准时交付率</div><div class="value">92%</div></div>
+      <span class="tag green">达标</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:92%;background:#10b981;"></div></div>
+    <div class="target">目标 ≥90% · 本月到货 128 批 · 准时 118 批</div>
+  </div>
+
+  <div class="summary-card" style="border-top-color:#f59e0b;">
+    <div class="top">
+      <div><div class="label">✅ 质量 PPM</div><div class="value">1,280</div></div>
+      <span class="tag yellow">需关注</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:74%;background:#f59e0b;"></div></div>
+    <div class="target">目标 ≤1,000 PPM · 当前 1,280 · 超目标 28%</div>
+  </div>
+
+  <div class="summary-card" style="border-top-color:#3b82f6;">
+    <div class="top">
+      <div><div class="label">📉 供应商优化率</div><div class="value">92%</div></div>
+      <span class="tag green">达标</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:92%;background:#3b82f6;"></div></div>
+    <div class="target">目标 25→23 家 · 已整合至 23 家 · 完成率 92%</div>
+  </div>
+
+  <div class="summary-card" style="border-top-color:#ef4444;">
+    <div class="top">
+      <div><div class="label">📦 库存周转天数</div><div class="value">42</div></div>
+      <span class="tag red">超标</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:83%;background:#ef4444;"></div></div>
+    <div class="target">目标 35 天 · 当前 42 天 · 超目标 7 天</div>
+  </div>
+
+  <div class="summary-card" style="border-top-color:#8b5cf6;">
+    <div class="top">
+      <div><div class="label">📋 采购费用率</div><div class="value">2.8%</div></div>
+      <span class="tag green">达标</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:100%;background:#8b5cf6;"></div></div>
+    <div class="target">目标 ≤3.0% · 当前 2.8% · 优于目标 0.2pp</div>
+  </div>
+</div>
+
+<!-- 月度趋势 -->
+<div class="row">
+  <div class="card">
+    <h3>📈 关键指标月度趋势 <small>近 6 个月</small></h3>
+    <div class="chart-area" id="trendChart"></div>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot" style="background:#6c63ff;"></span>降本达成率</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>OTD 准时交付率</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span>质量 PPM (/100)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>库存周转天数</span>
+    </div>
+  </div>
+  <div class="card">
+    <h3>🎯 目标完成全景 <small>当月各指标 vs 年度目标</small></h3>
+    <div class="chart-area" id="radarChart"></div>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot" style="background:#6c63ff;"></span>当前值</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>年度目标</span>
+    </div>
+  </div>
+</div>
+
+<div class="row-full">
+  <div class="card">
+    <h3>🚚 供应商 OTD 排名 <small>准时交付率 TOP & BOTTOM</small></h3>
+    <div id="otdTable"></div>
+  </div>
+  <div class="card">
+    <h3>🏆 本月降本明细 <small>按料号</small></h3>
+    <div id="costSavingTable"></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="card">
+    <h3>⚡ 关键预警</h3>
+    <div id="kpiAlerts"></div>
+  </div>
+  <div class="card">
+    <h3>📋 下月行动计划</h3>
+    <div id="actionPlan"></div>
+    <div class="actions">
+      <button class="primary" onclick="openModal()">📄 生成完整月报</button>
+      <button class="secondary">📥 导出 PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:1000;justify-content:center;align-items:center;">
+  <div class="modal" onclick="event.stopPropagation()" style="background:#fff;border-radius:16px;padding:28px;max-width:520px;width:90%;max-height:85vh;overflow-y:auto;">
+    <h2 style="font-size:16px;margin-bottom:12px;">📄 月度采购述职摘要</h2>
+    <p style="font-size:13px;color:#6b7280;line-height:1.6;">2026年6月 · 电子元器件采购部</p>
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;">
+    <div style="font-size:13px;color:#374151;line-height:1.7;">
+      <p><strong>📊 关键成果</strong></p>
+      <ul style="padding-left:16px;margin-bottom:10px;">
+        <li>本月完成降本 ¥18.2K，达成率 87%，累计年度降本 ¥104.4K</li>
+        <li>OTD 准时交付率 92%，连续 3 个月保持在目标线以上</li>
+        <li>供应商整合推进顺利，D 级武汉楚天已启动替代方案</li>
+        <li>苏州晶圆引入后表现优异，评分从 75 升至 88，预计下月升为 B 级</li>
+      </ul>
+      <p><strong>⚠️ 未达标项</strong></p>
+      <ul style="padding-left:16px;margin-bottom:10px;">
+        <li>质量 PPM 1,280 超出目标 28%，主要因 MLCC 批次不良率偏高</li>
+        <li>库存周转天数 42 天超目标 7 天，MLCC 品类积压严重</li>
+      </ul>
+      <p><strong>📋 下月行动计划</strong></p>
+      <ul style="padding-left:16px;">
+        <li>推动 MLCC 国产替代供应商 TCO 评估，目标 Q3 完成切换</li>
+        <li>启动 MOS 管 VA/VE 工作坊，目标降本 ¥8.5K</li>
+        <li>完成武汉楚天和厦门信达的供应商退出交接</li>
+        <li>组织 PCB 供应商季度 review 会议</li>
+      </ul>
+    </div>
+    <div class="actions" style="margin-top:14px;">
+      <button class="secondary" onclick="closeModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('currentDate').textContent = `更新于 ${new Date().getFullYear()}/${String(new Date().getMonth()+1).padStart(2,'0')}/${String(new Date().getDate()).padStart(2,'0')}`;
+
+// Trend chart
+const months = ['1月','2月','3月','4月','5月','6月'];
+function drawTrend() {
+  const datasets = [
+    { data:[72,75,80,82,85,87], color:'#6c63ff' },
+    { data:[85,86,88,90,91,92], color:'#10b981' },
+    { data:[18,17,15,14,13,13], color:'#f59e0b' },
+    { data:[48,47,45,44,43,42], color:'#ef4444' },
+  ];
+  const c = document.getElementById('trendChart'); if(!c) return;
+  const w=c.offsetWidth-20,h=200,pad={top:20,bottom:30,left:40,right:20};
+  const cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom;
+  let max=100;
+  const scaleY=v=>ch-(v/max)*ch,stepX=cw/(months.length-1||1);
+  let svg=`<svg viewBox="0 0 ${w} ${h}">`;
+  for(let i=0;i<=4;i++){const y=pad.top+(ch/4)*i;svg+=`<line x1="${pad.left}" y1="${y}" x2="${w-pad.right}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/><text x="${pad.left-6}" y="${y+4}" text-anchor="end" fill="#9ca3af" font-size="10">${Math.round(max-(max/4)*i)}</text>`;}
+  months.forEach((m,i)=>{svg+=`<text x="${pad.left+stepX*i}" y="${h-6}" text-anchor="middle" fill="#9ca3af" font-size="10">${m}</text>`;});
+  datasets.forEach(d=>{let p=d.data.map((v,i)=>`${i===0?'M':'L'}${pad.left+stepX*i} ${scaleY(v)}`).join(' ');svg+=`<path d="${p}" stroke="${d.color}" stroke-width="2.5" fill="none"/>`;d.data.forEach((v,i)=>{svg+=`<circle cx="${pad.left+stepX*i}" cy="${scaleY(v)}" r="3.5" fill="${d.color}"/>`;});});
+  svg+='</svg>';c.innerHTML=svg;
+}
+
+// Radar
+function drawRadar() {
+  const c=document.getElementById('radarChart');if(!c)return;
+  const size=Math.min(c.offsetWidth-20,280),cx=size/2,cy=size/2,radius=size/2-30;
+  const dims=['降本\n达成率','OTD\n交付率','质量\nPPM','供应商\n优化率','周转\n天数','费用\n率'];
+  const current=[87,92,72,92,60,93]; // normalized to 0-100 (PPM inverted, days inverted)
+  const target=[100,100,100,100,100,100];
+  const angleStep=(Math.PI*2)/dims.length;
+  let svg=`<svg viewBox="0 0 ${size} ${size}">`;
+  [0.25,0.5,0.75,1].forEach(r=>{let d='';dims.forEach((_,i)=>{const a=-Math.PI/2+i*angleStep;d+=`${i===0?'M':'L'}${cx+r*radius*Math.cos(a)},${cy+r*radius*Math.sin(a)}`;});d+='Z';svg+=`<path d="${d}" fill="none" stroke="#e5e7eb" stroke-width="1"/>`;});
+  dims.forEach((_,i)=>{const a=-Math.PI/2+i*angleStep;svg+=`<line x1="${cx}" y1="${cy}" x2="${cx+radius*Math.cos(a)}" y2="${cy+radius*Math.sin(a)}" stroke="#e5e7eb" stroke-width="1"/><text x="${cx+(radius+18)*Math.cos(a)}" y="${cy+(radius+18)*Math.sin(a)+3}" text-anchor="middle" fill="#6b7280" font-size="8">${dims[i]}</text>`;});
+  // target
+  let dt='';dims.forEach((_,i)=>{const a=-Math.PI/2+i*angleStep;dt+=`${i===0?'M':'L'}${cx+1*radius*Math.cos(a)},${cy+1*radius*Math.sin(a)}`;});dt+='Z';svg+=`<path d="${dt}" fill="#10b981" opacity="0.08" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+  // current
+  let dc='';dims.forEach((_,i)=>{const v=current[i]/100*radius;const a=-Math.PI/2+i*angleStep;dc+=`${i===0?'M':'L'}${cx+v*Math.cos(a)},${cy+v*Math.sin(a)}`;});dc+='Z';svg+=`<path d="${dc}" fill="#6c63ff" opacity="0.15" stroke="#6c63ff" stroke-width="1.5"/>`;
+  dims.forEach((_,i)=>{const v=current[i]/100*radius;const a=-Math.PI/2+i*angleStep;svg+=`<circle cx="${cx+v*Math.cos(a)}" cy="${cy+v*Math.sin(a)}" r="2.5" fill="#6c63ff"/>`;});
+  svg+='</svg>';c.innerHTML=svg;
+}
+
+// OTD table
+function drawOTD() {
+  const data=[
+    {name:'华强电子',otd:98,trend:'up',tier:'A'},
+    {name:'中芯国际代理',otd:95,trend:'up',tier:'A'},
+    {name:'深圳华富',otd:92,trend:'stable',tier:'A'},
+    {name:'广东科泰',otd:88,trend:'up',tier:'B'},
+    {name:'苏州晶圆',otd:86,trend:'up',tier:'B'},
+    {name:'上海芯源',otd:85,trend:'down',tier:'B'},
+    {name:'北京中发',otd:82,trend:'stable',tier:'B'},
+    {name:'杭州微电',otd:78,trend:'up',tier:'C'},
+    {name:'东莞丰华',otd:68,trend:'stable',tier:'C'},
+    {name:'武汉楚天',otd:65,trend:'down',tier:'D'},
+  ];
+  document.getElementById('otdTable').innerHTML=`<table><tr><th>排名</th><th>供应商</th><th>OTD</th><th>趋势</th><th>等级</th><th>建议</th></tr>${
+    data.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name}</td><td style="font-weight:600;">${s.otd}%</td><td>${s.trend==='up'?'↑':s.trend==='down'?'↓':'→'}</td><td><span class="tag ${s.tier==='A'?'green':s.tier==='B'?'blue':s.tier==='C'?'yellow':'red'}">${s.tier}</span></td><td style="font-size:11px;color:#6b7280;">${s.tier==='A'?'战略合作':s.tier==='B'?'重点培养':s.tier==='C'?'需改进':'考虑替换'}</td></tr>`).join('')}</table>`;
+}
+
+// Cost saving table
+function drawCostSaving() {
+  const data=[
+    {part:'STM32F103C8T6',desc:'兼容型号替代 STM32G030',saving:'¥3.20/pcs',qty:800,total:'¥2,560',status:'已实施'},
+    {part:'IRF520 MOS',desc:'国产替代·VE 优化',saving:'¥2.85/pcs',qty:1200,total:'¥3,420',status:'已实施'},
+    {part:'PCB 4 层板',desc:'设计变更 4层→2层',saving:'¥2.80/pcs',qty:500,total:'¥1,400',status:'评估中'},
+    {part:'0402 MLCC 10μF',desc:'批量折扣·年用量承诺',saving:'¥0.12/pcs',qty:50000,total:'¥6,000',status:'谈判中'},
+    {part:'0603 电阻通用料',desc:'3 种阻值整合为通用料',saving:'¥0.03/pcs',qty:100000,total:'¥3,000',status:'已批准'},
+    {part:'连接器排针',desc:'供应商切换 华富→科泰',saving:'¥0.15/pcs',qty:8000,total:'¥1,200',status:'已实施'},
+  ];
+  document.getElementById('costSavingTable').innerHTML=`<table><tr><th>料号</th><th>降本方式</th><th>节约/单位</th><th>月度量</th><th>月节约额</th><th>状态</th></tr>${
+    data.map(s=>`<tr><td style="font-weight:500;">${s.part}</td><td style="font-size:11px;color:#6b7280;">${s.desc}</td><td style="color:#10b981;font-weight:600;">${s.saving}</td><td>${s.qty.toLocaleString()}</td><td style="font-weight:600;">${s.total}</td><td><span class="tag ${s.status==='已实施'?'green':s.status==='评估中'?'blue':s.status==='谈判中'?'yellow':'green'}">${s.status}</span></td></tr>`).join('')}</table>
+  <div style="font-size:11px;color:#9ca3af;margin-top:6px;">💡 本月已落地降本 ¥7,180 · 在谈/评估中预计可再节约 ¥7,400/月</div>`;
+}
+
+// Alerts
+function drawAlerts() {
+  document.getElementById('kpiAlerts').innerHTML=`
+    <div class="alert-item"><div class="alert-icon" style="background:#fee2e2;">!</div><div style="flex:1;"><div style="font-weight:500;font-size:12px;">质量 PPM 超标 28%</div><div style="font-size:11px;color:#6b7280;">MLCC 来料批次不良率偏高，已发出 SCAR 至中芯代理</div></div></div>
+    <div class="alert-item"><div class="alert-icon" style="background:#fee2e2;">!</div><div style="flex:1;"><div style="font-weight:500;font-size:12px;">库存周转 42 天超目标 7 天</div><div style="font-size:11px;color:#6b7280;">MLCC 品类积压严重，建议暂停采购 2 周消化库存</div></div></div>
+    <div class="alert-item"><div class="alert-icon" style="background:#fef3c7;">⚠</div><div style="flex:1;"><div style="font-weight:500;font-size:12px;">降本达成率 87%</div><div style="font-size:11px;color:#6b7280;">距年度目标差 13%，需加快 PCB 降级和 MLCC 谈判进度</div></div></div>
+    <div class="alert-item"><div class="alert-icon" style="background:#dbeafe;">ℹ</div><div style="flex:1;"><div style="font-weight:500;font-size:12px;">武汉楚天 连续 3 月 OTD 低于 70%</div><div style="font-size:11px;color:#6b7280;">建议启动 replacement plan，目标 7 月底前完成切换</div></div></div>
+  `;
+}
+
+function drawActionPlan() {
+  document.getElementById('actionPlan').innerHTML=`
+    <div class="alert-item"><div style="background:#6c63ff;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-weight:700;">1</div><div style="flex:1;"><div style="font-weight:500;font-size:12px;">MLCC 国产替代切换 TCO 评估</div><div style="font-size:11px;color:#6b7280;">截止 6/30 · 责任人：采购部</div></div></div>
+    <div class="alert-item"><div style="background:#6c63ff;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-weight:700;">2</div><div style="flex:1;"><div style="font-weight:500;font-size:12px;">MOS 管 VA/VE 工作坊</div><div style="font-size:11px;color:#6b7280;">截止 7/15 · 涉及研发+采购+供应商</div></div></div>
+    <div class="alert-item"><div style="background:#6c63ff;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-weight:700;">3</div><div style="flex:1;"><div style="font-weight:500;font-size:12px;">武汉楚天 & 厦门信达供应商退出</div><div style="font-size:11px;color:#6b7280;">截止 7/31 · 最后批次 + 替代切换</div></div></div>
+    <div class="alert-item"><div style="background:#6c63ff;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-weight:700;">4</div><div style="flex:1;"><div style="font-weight:500;font-size:12px;">深圳华富 QBR 季度 review</div><div style="font-size:11px;color:#6b7280;">截止 7/10 · 准备绩效数据和下季度目标</div></div></div>
+  `;
+}
+
+function openModal() { document.getElementById('modalOverlay').style.display='flex'; }
+function closeModal(e) { if(e && e.target!==e.currentTarget) return; document.getElementById('modalOverlay').style.display='none'; }
+
+drawTrend(); drawRadar(); drawOTD(); drawCostSaving(); drawAlerts(); drawActionPlan();
+window.addEventListener('resize',()=>{drawTrend();drawRadar();});
+</script>
+</body>
+</html>
