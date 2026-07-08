@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采购智控 · 成本分析套件 Demo</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #f5f7fa; color: #1a1a2e; padding: 24px;
+  }
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; }
+  .header h1 { font-size:24px; font-weight:700; color:#1a1a2e; }
+  .header h1 span { color:#6c63ff; }
+  .header .date { color:#6b7280; font-size:14px; }
+  .nav-tabs { display:flex; gap:4px; background:#e5e7eb; border-radius:10px; padding:4px; margin-bottom:24px; flex-wrap:wrap; }
+  .nav-tabs button {
+    padding:8px 18px; border:none; border-radius:7px; font-size:13px; font-weight:500;
+    cursor:pointer; background:transparent; color:#6b7280; transition:all 0.15s;
+  }
+  .nav-tabs button.active { background:#fff; color:#1a1a2e; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+  .stat-card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+  .stat-card .label { font-size:13px; color:#6b7280; margin-bottom:4px; }
+  .stat-card .value { font-size:26px; font-weight:700; }
+  .stat-card .sub { font-size:12px; margin-top:4px; }
+  .stat-card .sub.up { color:#10b981; }
+  .stat-card .sub.down { color:#ef4444; }
+
+  .row { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:24px; }
+  .row-full { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  .row-triple { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:24px; }
+  .card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+  .card h3 { font-size:15px; font-weight:600; margin-bottom:16px; color:#374151; }
+  .card h3 small { font-weight:400; font-size:12px; color:#9ca3af; margin-left:6px; }
+  .card h4 { font-size:13px; font-weight:600; margin:12px 0 8px; color:#4b5563; }
+
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; padding:8px 6px; color:#6b7280; font-weight:500; border-bottom:1px solid #e5e7eb; }
+  td { padding:8px 6px; border-bottom:1px solid #f3f4f6; }
+  .tag { display:inline-block; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:500; }
+  .tag.green { background:#d1fae5; color:#065f46; }
+  .tag.yellow { background:#fef3c7; color:#92400e; }
+  .tag.red { background:#fee2e2; color:#991b1b; }
+  .tag.blue { background:#dbeafe; color:#1e40af; }
+  .tag.purple { background:#f3e8ff; color:#6b21a8; }
+  .tag.gray { background:#f3f4f6; color:#4b5563; }
+
+  .chart-area { height:200px; position:relative; margin-bottom:8px; }
+  .chart-area svg { width:100%; height:100%; }
+  .legend { display:flex; gap:16px; font-size:12px; color:#6b7280; flex-wrap:wrap; }
+  .legend-item { display:flex; align-items:center; gap:4px; }
+
+  .actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .actions button {
+    padding:8px 16px; border:none; border-radius:8px; font-size:12px;
+    font-weight:500; cursor:pointer; transition:all 0.2s;
+  }
+  .actions button.primary { background:#6c63ff; color:#fff; }
+  .actions button.primary:hover { background:#5a52e0; }
+  .actions button.secondary { background:#e5e7eb; color:#374151; }
+  .actions button.secondary:hover { background:#d1d5db; }
+  .actions button.success { background:#10b981; color:#fff; }
+  .actions button.success:hover { background:#059669; }
+
+  .metric-box {
+    background:#f8fafc; border-radius:8px; padding:14px; text-align:center; border:1px solid #e5e7eb;
+  }
+  .metric-box .m-value { font-size:22px; font-weight:700; }
+  .metric-box .m-label { font-size:11px; color:#6b7280; margin-top:2px; }
+  .method-card {
+    background:#f8fafc; border-radius:10px; padding:16px; border:1px solid #e5e7eb;
+    transition: all 0.2s; cursor:pointer;
+  }
+  .method-card:hover { border-color:#6c63ff; box-shadow:0 2px 8px rgba(108,99,255,0.1); }
+  .method-card .method-title { font-weight:600; font-size:14px; margin-bottom:6px; }
+  .method-card .method-desc { font-size:12px; color:#6b7280; line-height:1.5; }
+  .method-card .method-tag { font-size:10px; padding:1px 8px; border-radius:999px; display:inline-block; margin-top:8px; }
+  .bom-indent { padding-left:20px !important; font-size:12px; color:#6b7280; }
+  .highlight-row { background:#f5f3ff; }
+
+  @media (max-width:900px) {
+    .stats-grid { grid-template-columns:repeat(2,1fr); }
+    .row, .row-full, .row-triple { grid-template-columns:1fr; }
+  }
+
+  /* Modal */
+  .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.4); z-index:1000; justify-content:center; align-items:center; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:#fff; border-radius:16px; padding:28px; max-width:600px; width:90%; max-height:85vh; overflow-y:auto; }
+  .modal h2 { font-size:18px; margin-bottom:16px; }
+  .modal p { font-size:13px; color:#6b7280; line-height:1.6; margin-bottom:12px; }
+  .feat-list { list-style:none; padding:0; }
+  .feat-list li { padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:13px; display:flex; align-items:flex-start; gap:10px; }
+  .feat-list li:last-child { border-bottom:none; }
+  .feat-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🔌 采购智控 <span>· 成本分析套件</span></h1>
+    <div style="font-size:13px;color:#6b7280;margin-top:2px;">电子元器件 · TCO / ABC / VA-VE / BOM / Target Costing 完整演示</div>
+  </div>
+  <div class="date" id="currentDate"></div>
+</div>
+
+<!-- Nav Tabs -->
+<div class="nav-tabs">
+  <button class="active" data-tab="tab-overview" onclick="switchTab('tab-overview')">📊 总览</button>
+  <button data-tab="tab-tco" onclick="switchTab('tab-tco')">💰 TCO 总拥有成本</button>
+  <button data-tab="tab-abc" onclick="switchTab('tab-abc')">📋 ABC 作业成本</button>
+  <button data-tab="tab-vave" onclick="switchTab('tab-vave')">⚡ VA/VE 价值分析</button>
+  <button data-tab="tab-bom" onclick="switchTab('tab-bom')">🔩 BOM 成本拆解</button>
+  <button data-tab="tab-target" onclick="switchTab('tab-target')">🎯 Target Costing</button>
+</div>
+
+<!-- ==================== TAB 1: OVERVIEW ==================== -->
+<div class="tab-content active" id="tab-overview">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">月度采购支出</div>
+      <div class="value" style="color:#6c63ff;">¥ 384.6K</div>
+      <div class="sub up">↑ 8.2% vs 上月</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">平均 TCO 溢价率</div>
+      <div class="value" style="color:#f59e0b;">18.3%</div>
+      <div class="sub warn">采购价之外的隐性成本占比</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">VE 价值提升</div>
+      <div class="value" style="color:#10b981;">+12.6%</div>
+      <div class="sub up">功能/成本比同比提升</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">目标成本达成率</div>
+      <div class="value" style="color:#ef4444;">73%</div>
+      <div class="sub down">3 个料号超目标成本</div>
+    </div>
+  </div>
+
+  <!-- 五方法概览 -->
+  <div class="row-full">
+    <div class="card">
+      <h3>🧠 五种成本分析方法概览</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;">
+        <div class="method-card" onclick="switchTab('tab-tco')">
+          <div class="method-title">💰 TCO 总拥有成本</div>
+          <div class="method-desc">不只看采购价，涵盖物流、关税、库存持有、质量损失、售后等全生命周期成本</div>
+          <span class="method-tag tag blue">采购价 + 隐性成本</span>
+        </div>
+        <div class="method-card" onclick="switchTab('tab-abc')">
+          <div class="method-title">📋 ABC 作业成本法</div>
+          <div class="method-desc">将间接成本按作业活动精确分摊，避免传统分摊法的成本扭曲</div>
+          <span class="method-tag tag purple">间接费用精细分摊</span>
+        </div>
+        <div class="method-card" onclick="switchTab('tab-vave')">
+          <div class="method-title">⚡ VA/VE 价值分析</div>
+          <div class="method-desc">价值 = 功能 ÷ 成本，找到成本高但功能价值低的优化切入点</div>
+          <span class="method-tag tag green">降本不降功能</span>
+        </div>
+        <div class="method-card" onclick="switchTab('tab-bom')">
+          <div class="method-title">🔩 BOM 成本拆解</div>
+          <div class="method-desc">从 BOM 层级逐层下钻，定位成本占比最高的料号和层级</div>
+          <span class="method-tag tag yellow">逐层钻取分析</span>
+        </div>
+        <div class="method-card" onclick="switchTab('tab-target')">
+          <div class="method-title">🎯 Target Costing</div>
+          <div class="method-desc">从目标售价倒推 allowable cost，指导供应商选择和设计方案</div>
+          <span class="method-tag tag red">售价倒推成本</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📊 成本节约机会矩阵</h3>
+      <div class="chart-area" id="opportunityChart"></div>
+      <div style="font-size:12px;color:#6b7280;text-align:center;">X 轴：改善难度 · Y 轴：潜在节约金额 · 气泡大小：年采购额</div>
+    </div>
+  </div>
+
+  <!-- Quick insight -->
+  <div class="card">
+    <h3>💡 综合分析建议</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;">
+      <div style="padding:12px;background:#f5f3ff;border-radius:8px;">
+        <div style="font-weight:600;color:#6c63ff;margin-bottom:4px;">📌 优先级 #1：MLCC 成本优化</div>
+        <div style="font-size:12px;color:#6b7280;">TCO 溢价率高达 32%（关税+物流波动），建议切换为本土供应商，预计可降低 TCO 18%</div>
+      </div>
+      <div style="padding:12px;background:#fefce8;border-radius:8px;">
+        <div style="font-weight:600;color:#f59e0b;margin-bottom:4px;">📌 优先级 #2：PCB 价值工程</div>
+        <div style="font-size:12px;color:#6b7280;">VE 分析显示 PCB 的"层数"功能冗余，4 层降为 2 层可满足需求，单板成本降低 35%</div>
+      </div>
+      <div style="padding:12px;background:#ecfdf5;border-radius:8px;">
+        <div style="font-weight:600;color:#10b981;margin-bottom:4px;">📌 优先级 #3：MOS 管目标成本</div>
+        <div style="font-size:12px;color:#6b7280;">当前成本超出目标 15%，建议与供应商开展 VA 联合工作坊，寻找替代设计方案</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 2: TCO ==================== -->
+<div class="tab-content" id="tab-tco">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">平均 TCO / 采购价</div>
+      <div class="value" style="color:#6c63ff;">1.18x</div>
+      <div class="sub warn">隐性成本使总成本增加 18%</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">其中：显性成本</div>
+      <div class="value">84.5%</div>
+      <div class="sub ">采购价 + 运费 + 关税</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">其中：隐性成本</div>
+      <div class="value" style="color:#ef4444;">15.5%</div>
+      <div class="sub down">库存持有 + 质量损失 + 售后</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">最大 TCO 优化空间</div>
+      <div class="value" style="color:#10b981;">¥ 42.3K</div>
+      <div class="sub up">MLCC 品类 · 建议切换本地供应商</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <h3>💰 TCO 成本结构对比 <small>按料号 · 采购价归一化 = 100%</small></h3>
+      <div class="chart-area" id="tcoChart"></div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#6c63ff;"></span> 采购价</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> 物流/关税</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> 库存持有</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> 质量损失</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#9ca3af;"></span> 售后/其他</span>
+      </div>
+      <div class="actions">
+        <button class="primary" onclick="openModal('tcoDetail')">📊 查看完整 TCO 模型</button>
+        <button class="secondary">📥 导出对比表</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>🏆 供应商 TCO 排名</h3>
+      <div id="tcoSupplierRank"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 3: ABC ==================== -->
+<div class="tab-content" id="tab-abc">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">总间接费用</div>
+      <div class="value">¥ 96.2K</div>
+      <div class="sub ">占采购总额 25%</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">ABC 活动数</div>
+      <div class="value">12</div>
+      <div class="sub ">定义的成本动因活动</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">最大成本动因</div>
+      <div class="value" style="color:#f59e0b;">来料检验</div>
+      <div class="sub warn">占间接费用 22%</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">ABC 节约潜力</div>
+      <div class="value" style="color:#10b981;">¥ 18.5K</div>
+      <div class="sub up">优化检验频次可节省</div>
+    </div>
+  </div>
+  <div class="row-full">
+    <div class="card">
+      <h3>📋 作业活动成本分摊 <small>按成本动因</small></h3>
+      <div class="chart-area" id="abcChart"></div>
+    </div>
+    <div class="card">
+      <h3>🔍 ABC vs 传统分摊对比 <small>以 MLCC 品类为例</small></h3>
+      <div id="abcComparison"></div>
+      <div class="actions">
+        <button class="primary" onclick="openModal('abcDetail')">📖 ABC 方法论详解</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 4: VAVE ==================== -->
+<div class="tab-content" id="tab-vave">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">价值指数基准</div>
+      <div class="value" style="color:#6c63ff;">1.0</div>
+      <div class="sub ">价值 = 功能得分 / 成本</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">高价值料号</div>
+      <div class="value" style="color:#10b981;">6</div>
+      <div class="sub up">价值指数 ≥ 1.2</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">需优化料号</div>
+      <div class="value" style="color:#ef4444;">4</div>
+      <div class="sub down">价值指数 ≤ 0.8</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">总计节约潜力</div>
+      <div class="value" style="color:#f59e0b;">¥ 28.6K</div>
+      <div class="sub warn">通过 VA/VE 工作坊</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <h3>⚡ 价值分析矩阵 <small>功能得分 vs 成本占比</small></h3>
+      <div class="chart-area" id="vaveChart"></div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> 高价值</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> 需关注</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> 需优化</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>🔧 VA/VE 改善建议</h3>
+      <div id="vaveSuggestions"></div>
+      <div class="actions">
+        <button class="primary" onclick="openModal('vaveDetail')">📖 VA/VE 方法论详解</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 5: BOM ==================== -->
+<div class="tab-content" id="tab-bom">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">BOM 总成本</div>
+      <div class="value">¥ 86.50</div>
+      <div class="sub ">单台产品 BOM</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">BOM 层级数</div>
+      <div class="value">4</div>
+      <div class="sub ">从系统到元器件</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">TOP 3 料号占比</div>
+      <div class="value" style="color:#ef4444;">62%</div>
+      <div class="sub down">高度集中，需重点关注</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">优化潜力</div>
+      <div class="value" style="color:#10b981;">¥ 12.80</div>
+      <div class="sub up">单台可降本 14.8%</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <h3>🔩 BOM 层级成本拆解 <small>智能控制器产品</small></h3>
+      <div id="bomTable"></div>
+    </div>
+    <div class="card">
+      <h3>📊 成本帕累托分析</h3>
+      <div class="chart-area" id="bomPareto"></div>
+      <div class="actions">
+        <button class="primary" onclick="openModal('bomDetail')">🔩 BOM 成本分析方法详解</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 6: TARGET COSTING ==================== -->
+<div class="tab-content" id="tab-target">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">目标售价</div>
+      <div class="value">¥ 199</div>
+      <div class="sub ">市场对标定价</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">目标利润 25%</div>
+      <div class="value" style="color:#10b981;">¥ 49.75</div>
+      <div class="sub up">Allowable Cost = ¥149.25</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">当前成本</div>
+      <div class="value" style="color:#ef4444;">¥ 173.20</div>
+      <div class="sub down">超出目标 ¥23.95</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">成本差距</div>
+      <div class="value" style="color:#f59e0b;">-13.8%</div>
+      <div class="sub warn">需通过价值链降本</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <h3>🎯 目标成本分解 <small>目标 ¥149.25 vs 当前 ¥173.20</small></h3>
+      <div class="chart-area" id="targetChart"></div>
+    </div>
+    <div class="card">
+      <h3>📋 降本路径规划</h3>
+      <div id="targetPath"></div>
+      <div class="actions">
+        <button class="primary" onclick="openModal('targetDetail')">🎯 Target Costing 方法论详解</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Skill 底栏 -->
+<div class="card" style="margin-top:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <div>
+      <h3 style="margin-bottom:4px;">📄 采购智控 · 完整 Skill 设计稿</h3>
+      <div style="font-size:13px;color:#6b7280;">五种成本分析法 + 需求预测 + 供应商管理 + 库存管理 + 自动报告</div>
+    </div>
+    <button class="primary" onclick="openModal('skill')" style="padding:10px 24px;font-size:13px;">📄 查看完整 SKILL.md →</button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" id="modalContent">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div class="actions" style="margin-top:16px;">
+      <button class="secondary" onclick="closeModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== Date ======
+const now = new Date();
+document.getElementById('currentDate').textContent = `更新于 ${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+// ====== Tab switching ======
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+  // redraw charts after tab switch (charts need visible container)
+  setTimeout(() => { drawAll(); }, 50);
+}
+
+// ====== Helper: SVG bar chart ======
+function makeBarChart(id, labels, datasets, opts = {}) {
+  const container = document.getElementById(id);
+  if (!container) return;
+  const w = container.offsetWidth - 20;
+  const h = opts.height || 180;
+  const pad = { top: opts.padTop || 20, bottom: 30, left: 40, right: 20 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+  const stacked = opts.stacked || false;
+
+  // find max
+  let maxVal = 0;
+  if (stacked) {
+    for (let i = 0; i < labels.length; i++) {
+      let sum = 0;
+      datasets.forEach(d => { sum += (d.data[i] || 0); });
+      if (sum > maxVal) maxVal = sum;
+    }
+  } else {
+    datasets.forEach(d => d.data.forEach(v => { if (v > maxVal) maxVal = v; }));
+  }
+  maxVal *= 1.15;
+
+  const scaleY = (v) => ch - (v / maxVal) * ch;
+  const stepX = cw / (labels.length - 1 || 1);
+  const barW = Math.min(stepX * 0.6, 40) / (stacked ? 1 : datasets.length);
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}">`;
+  // grid
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (ch / 4) * i;
+    svg += `<line x1="${pad.left}" y1="${y}" x2="${w-pad.right}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`;
+    svg += `<text x="${pad.left-6}" y="${y+4}" text-anchor="end" fill="#9ca3af" font-size="10">${Math.round(maxVal - (maxVal/4)*i)}</text>`;
+  }
+  // x labels
+  labels.forEach((m,i) => {
+    const x = pad.left + stepX * i;
+    svg += `<text x="${x}" y="${h-6}" text-anchor="middle" fill="#9ca3af" font-size="10">${m}</text>`;
+  });
+
+  if (stacked) {
+    // stacked bars
+    labels.forEach((_, i) => {
+      let yBottom = pad.top + ch;
+      datasets.forEach(d => {
+        const v = d.data[i] || 0;
+        const bh = (v / maxVal) * ch;
+        const x = pad.left + stepX * i - barW/2;
+        svg += `<rect x="${x}" y="${yBottom-bh}" width="${barW}" height="${bh}" fill="${d.color||'#6c63ff'}" opacity="0.85" rx="2"/>`;
+        yBottom -= bh;
+      });
+    });
+  } else {
+    // grouped bars
+    labels.forEach((_, i) => {
+      datasets.forEach((d, di) => {
+        const v = d.data[i] || 0;
+        const bh = (v / maxVal) * ch;
+        const x = pad.left + stepX * i - (datasets.length * barW) / 2 + di * barW;
+        svg += `<rect x="${x}" y="${pad.top+ch-bh}" width="${barW-2}" height="${Math.max(bh,1)}" fill="${d.color||'#6c63ff'}" opacity="0.85" rx="2"/>`;
+      });
+    });
+  }
+
+  svg += '</svg>';
+  container.innerHTML = svg;
+}
+
+// ====== Helper: SVG horizontal bar ======
+function makeHBar(id, labels, values, colors, opts = {}) {
+  const container = document.getElementById(id);
+  if (!container) return;
+  const w = container.offsetWidth - 20;
+  const h = opts.height || 180;
+  const pad = { top: 10, bottom: 20, left: 80, right: 50 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+  const barH = Math.min(ch / labels.length, 28);
+  const maxVal = Math.max(...values) * 1.1;
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}">`;
+  labels.forEach((label, i) => {
+    const y = pad.top + barH * i + (ch - labels.length * barH) / 2;
+    svg += `<text x="${pad.left-8}" y="${y+barH/2+4}" text-anchor="end" fill="#4b5563" font-size="11">${label}</text>`;
+    svg += `<rect x="${pad.left}" y="${y+2}" width="${(values[i]/maxVal)*cw}" height="${barH-4}" rx="3" fill="${colors[i]}" opacity="0.85"/>`;
+    svg += `<text x="${pad.left+(values[i]/maxVal)*cw+6}" y="${y+barH/2+4}" fill="#374151" font-size="11" font-weight="500">${values[i]}${opts.suffix||''}</text>`;
+  });
+  svg += '</svg>';
+  container.innerHTML = svg;
+}
+
+// ====== Opportunity Matrix (bubble) ======
+function drawOpportunity() {
+  const container = document.getElementById('opportunityChart');
+  if (!container) return;
+  const w = container.offsetWidth - 20;
+  const h = 200;
+  const pad = { top: 30, bottom: 30, left: 40, right: 20 };
+
+  const items = [
+    { label:'MLCC 电容', x:0.2, y:0.85, size:42, color:'#ef4444' },
+    { label:'MOS 管', x:0.35, y:0.65, size:28, color:'#f59e0b' },
+    { label:'PCB 板', x:0.55, y:0.75, size:22, color:'#f59e0b' },
+    { label:'连接器', x:0.7, y:0.4, size:18, color:'#10b981' },
+    { label:'MCU', x:0.15, y:0.55, size:35, color:'#ef4444' },
+    { label:'电阻', x:0.85, y:0.2, size:14, color:'#6c63ff' },
+  ];
+
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}">`;
+  // quadrants
+  svg += `<line x1="${pad.left+cw/2}" y1="${pad.top}" x2="${pad.left+cw/2}" y2="${pad.top+ch}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,4"/>`;
+  svg += `<line x1="${pad.left}" y1="${pad.top+ch/2}" x2="${pad.left+cw}" y2="${pad.top+ch/2}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,4"/>`;
+  svg += `<text x="${pad.left+8}" y="${pad.top+ch/2-8}" fill="#9ca3af" font-size="10">易</text>`;
+  svg += `<text x="${pad.left+8}" y="${pad.top+ch-8}" fill="#9ca3af" font-size="10">难</text>`;
+  svg += `<text x="${pad.left+cw/2+4}" y="${pad.top+12}" fill="#9ca3af" font-size="10">高潜力</text>`;
+  svg += `<text x="${pad.left+cw/2+4}" y="${pad.top+ch/2+ch/4}" fill="#9ca3af" font-size="10">低潜力</text>`;
+
+  items.forEach(item => {
+    const cx = pad.left + item.x * cw;
+    const cy = pad.top + (1 - item.y) * ch;
+    const r = item.size / 2;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${item.color}" opacity="0.6" stroke="${item.color}" stroke-width="1.5"/>`;
+    svg += `<text x="${cx}" y="${cy+4}" text-anchor="middle" fill="#fff" font-size="8" font-weight="600">${item.label.replace(' ','\n')}</text>`;
+  });
+  svg += '</svg>';
+  container.innerHTML = svg;
+}
+
+// ====== TCO ======
+function drawTCO() {
+  const labels = ['STM32\nF103','IRF520\nMOS','MLCC\n10μF','PCB\n4层','USB\n连接器','LED\n0603'];
+  makeBarChart('tcoChart', labels, [
+    { data: [100,100,100,100,100,100], color:'#6c63ff' },
+    { data: [18,12,28,15,10,8], color:'#10b981' },
+    { data: [8,6,12,5,4,3], color:'#f59e0b' },
+    { data: [5,8,6,3,2,1], color:'#ef4444' },
+    { data: [3,2,4,2,1,1], color:'#9ca3af' },
+  ], { stacked: true, height: 180 });
+
+  // TCO supplier rank
+  const tcoData = [
+    { name:'华强电子', tco:118, score:94, rec:'推荐' },
+    { name:'中芯代理', tco:125, score:91, rec:'推荐' },
+    { name:'深圳华富', tco:132, score:89, rec:'可选' },
+    { name:'广东科泰', tco:128, score:87, rec:'可选' },
+    { name:'上海芯源', tco:145, score:85, rec:'关注' },
+    { name:'北京中发', tco:150, score:83, rec:'关注' },
+  ];
+  document.getElementById('tcoSupplierRank').innerHTML = `
+    <table>
+      <tr><th>供应商</th><th>TCO 指数</th><th>评分</th><th>建议</th></tr>
+      ${tcoData.map(s => `<tr><td>${s.name}</td><td>${s.tco}</td><td><span class="tag ${s.score>=90?'green':s.score>=87?'blue':'yellow'}">${s.score}</span></td><td>${s.rec}</td></tr>`).join('')}
+    </table>
+    <div style="font-size:11px;color:#9ca3af;margin-top:8px;">TCO 指数：采购价为基准 100，越低越好</div>
+  `;
+}
+
+// ====== ABC ======
+function drawABC() {
+  const acts = ['来料\n检验','采购\n订单处理','仓储\n管理','供应商\n审核','物流\n协调','品质\n处理'];
+  const costs = [22, 18, 16, 14, 12, 10];
+  const colors = ['#6c63ff','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
+  // Show as pie-like horizontal bar
+  makeHBar('abcChart', acts, costs, colors, { height: 200, suffix: '%' });
+
+  // ABC vs Traditional
+  document.getElementById('abcComparison').innerHTML = `
+    <table>
+      <tr><th>成本项目</th><th>传统分摊</th><th>ABC 分摊</th><th>差异</th></tr>
+      <tr><td>MLCC 采购价</td><td>¥100.00</td><td>¥100.00</td><td>-</td></tr>
+      <tr><td>来料检验</td><td>¥5.00</td><td>¥12.80</td><td class="tag red">+¥7.80</td></tr>
+      <tr><td>仓储管理</td><td>¥5.00</td><td>¥3.20</td><td class="tag green">-¥1.80</td></tr>
+      <tr><td>采购订单</td><td>¥5.00</td><td>¥1.50</td><td class="tag green">-¥3.50</td></tr>
+      <tr><td>供应商管理</td><td>¥5.00</td><td>¥8.40</td><td class="tag red">+¥3.40</td></tr>
+      <tr class="highlight-row"><td><strong>总间接费用</strong></td><td><strong>¥20.00</strong></td><td><strong>¥25.90</strong></td><td><strong class="tag yellow">+¥5.90</strong></td></tr>
+    </table>
+    <div style="font-size:11px;color:#6b7280;margin-top:8px;padding:8px;background:#fefce8;border-radius:6px;">
+      💡 传统分摊低估了 MLCC 品类实际消耗的资源。ABC 揭示真实成本后，建议重新评估 MLCC 的采购策略。
+    </div>
+  `;
+}
+
+// ====== VAVE ======
+function drawVAVE() {
+  const items = [
+    { label:'MCU', func:9.2, cost:8.5, val:1.08, color:'#f59e0b' },
+    { label:'MLCC', func:8.5, cost:9.2, val:0.92, color:'#f59e0b' },
+    { label:'MOS', func:6.8, cost:9.5, val:0.72, color:'#ef4444' },
+    { label:'PCB', func:5.5, cost:8.0, val:0.69, color:'#ef4444' },
+    { label:'连接器', func:7.5, cost:6.0, val:1.25, color:'#10b981' },
+    { label:'电阻', func:4.0, cost:3.5, val:1.14, color:'#10b981' },
+    { label:'LED', func:3.5, cost:2.8, val:1.25, color:'#10b981' },
+    { label:'二极管', func:5.0, cost:6.5, val:0.77, color:'#ef4444' },
+  ];
+  const w = document.getElementById('vaveChart').offsetWidth - 20;
+  const h = 180;
+  const pad = { top: 20, bottom: 30, left: 40, right: 30 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+  const maxX = 10, maxY = 10;
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}">`;
+  // grid
+  for (let i = 0; i <= 4; i++) {
+    const x = pad.left + (cw/4)*i;
+    const y = pad.top + (ch/4)*i;
+    svg += `<line x1="${pad.left}" y1="${pad.top+(ch/4)*i}" x2="${pad.left+cw}" y2="${pad.top+(ch/4)*i}" stroke="#f0f0f0" stroke-width="1"/>`;
+    svg += `<line x1="${pad.left+(cw/4)*i}" y1="${pad.top}" x2="${pad.left+(cw/4)*i}" y2="${pad.top+ch}" stroke="#f0f0f0" stroke-width="1"/>`;
+  }
+  // axes labels
+  for (let i = 0; i <= 4; i++) {
+    svg += `<text x="${pad.left+(cw/4)*i}" y="${h-6}" text-anchor="middle" fill="#9ca3af" font-size="9">${(maxX/4)*i}</text>`;
+    svg += `<text x="${pad.left-8}" y="${pad.top+ch-(ch/4)*i+4}" text-anchor="end" fill="#9ca3af" font-size="9">${(maxY/4)*i}</text>`;
+  }
+  svg += `<text x="${pad.left-8}" y="${h-6}" text-anchor="end" fill="#9ca3af" font-size="9">0</text>`;
+  // axis titles
+  svg += `<text x="${pad.left+cw/2}" y="${h-6}" text-anchor="middle" fill="#6b7280" font-size="10" font-weight="500">成本评分 (越低越好)</text>`;
+  svg += `<text x="12" y="${pad.top+ch/2}" text-anchor="middle" fill="#6b7280" font-size="10" font-weight="500" transform="rotate(-90,12,${pad.top+ch/2})">功能评分</text>`;
+  // value line
+  svg += `<line x1="${pad.left}" y1="${pad.top+ch}" x2="${pad.left+cw}" y2="${pad.top}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="6,3"/>`;
+
+  items.forEach(item => {
+    const cx = pad.left + (item.cost / maxX) * cw;
+    const cy = pad.top + ch - (item.func / maxY) * ch;
+    svg += `<circle cx="${cx}" cy="${cy}" r="14" fill="${item.color}" opacity="0.15" stroke="${item.color}" stroke-width="1.5"/>`;
+    svg += `<text x="${cx}" y="${cy+3}" text-anchor="middle" fill="${item.color}" font-size="7" font-weight="600">${item.label}</text>`;
+  });
+
+  // zone labels
+  svg += `<text x="${pad.left+cw*0.15}" y="${pad.top+ch*0.15}" fill="#10b981" font-size="9" font-weight="600">✨ 高价值</text>`;
+  svg += `<text x="${pad.left+cw*0.65}" y="${pad.top+ch*0.85}" fill="#ef4444" font-size="9" font-weight="600">⚠ 需优化</text>`;
+
+  svg += '</svg>';
+  document.getElementById('vaveChart').innerHTML = svg;
+
+  // VAVE suggestions
+  document.getElementById('vaveSuggestions').innerHTML = `
+    <div class="alert-item" style="display:flex;align-items:start;gap:10px;padding:10px 0;border-bottom:1px solid #f3f4f6;">
+      <div style="background:#fee2e2;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">1</div>
+      <div><div style="font-weight:500;font-size:13px;">MOS 管 · VE 替代方案</div><div style="font-size:12px;color:#6b7280;">IRF520 可用国产替代料，成本降低 30%，功能评分维持在 6.0 以上<br><span class="tag green">预计节约 ¥2.85/pcs</span></div></div>
+    </div>
+    <div class="alert-item" style="display:flex;align-items:start;gap:10px;padding:10px 0;border-bottom:1px solid #f3f4f6;">
+      <div style="background:#fee2e2;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">2</div>
+      <div><div style="font-weight:500;font-size:13px;">PCB · 功能降级分析</div><div style="font-size:12px;color:#6b7280;">4 层→2 层设计变更，功能评分影响仅 -0.8，成本降低 35%<br><span class="tag green">预计节约 ¥2.80/pcs</span></div></div>
+    </div>
+    <div class="alert-item" style="display:flex;align-items:start;gap:10px;padding:10px 0;">
+      <div style="background:#fef3c7;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">3</div>
+      <div><div style="font-weight:500;font-size:13px;">二极管 · 标准化整合</div><div style="font-size:12px;color:#6b7280;">3 种不同封装整合为 1 种通用料，降低 SKU 复杂度和采购成本<br><span class="tag yellow">预计节约 ¥1.20/pcs</span></div></div>
+    </div>
+  `;
+}
+
+// ====== BOM ======
+function drawBOM() {
+  document.getElementById('bomTable').innerHTML = `
+    <table>
+      <tr><th>层级</th><th>料号/名称</th><th>用量</th><th>单价</th><th>小计</th><th>占比</th></tr>
+      <tr style="background:#f5f3ff;font-weight:600;"><td>L0</td><td>智能控制器 成品</td><td>1</td><td>¥86.50</td><td>¥86.50</td><td>100%</td></tr>
+      <tr><td>L1</td><td>└ 主控板组件</td><td>1</td><td>¥42.30</td><td>¥42.30</td><td>48.9%</td></tr>
+      <tr><td>L2</td><td>&emsp;└ MCU STM32F103</td><td>1</td><td>¥18.50</td><td>¥18.50</td><td>21.4%</td></tr>
+      <tr><td>L2</td><td>&emsp;└ MLCC 电容 ×8</td><td>8</td><td>¥0.65</td><td>¥5.20</td><td>6.0%</td></tr>
+      <tr><td>L2</td><td>&emsp;└ 连接器 排针</td><td>2</td><td>¥1.20</td><td>¥2.40</td><td>2.8%</td></tr>
+      <tr><td>L2</td><td>&emsp;└ 电阻 0603 ×12</td><td>12</td><td>¥0.08</td><td>¥0.96</td><td>1.1%</td></tr>
+      <tr><td>L2</td><td>&emsp;└ PCB 4 层板</td><td>1</td><td>¥8.00</td><td>¥8.00</td><td>9.2%</td></tr>
+      <tr><td>L2</td><td>&emsp;└ 其他 (二极管、LED等)</td><td>-</td><td>-</td><td>¥7.24</td><td>8.4%</td></tr>
+      <tr><td>L1</td><td>└ 电源模块组件</td><td>1</td><td>¥28.60</td><td>¥28.60</td><td>33.1%</td></tr>
+      <tr><td>L2</td><td>&emsp;└ MOS 管 IRF520</td><td>3</td><td>¥3.20</td><td>¥9.60</td><td>11.1%</td></tr>
+      <tr><td>L2</td><td>&emsp;└ 电解电容</td><td>2</td><td>¥1.80</td><td>¥3.60</td><td>4.2%</td></tr>
+      <tr><td>L2</td><td>&emsp;└ 其他</td><td>-</td><td>-</td><td>¥15.40</td><td>17.8%</td></tr>
+      <tr><td>L1</td><td>└ 结构件/外壳</td><td>1</td><td>¥8.60</td><td>¥8.60</td><td>9.9%</td></tr>
+      <tr><td>L1</td><td>└ 包装/附件</td><td>1</td><td>¥7.00</td><td>¥7.00</td><td>8.1%</td></tr>
+    </table>
+    <div style="font-size:11px;color:#9ca3af;margin-top:8px;">💡 TOP 3 料号（MCU + MOS + PCB）占总成本 41.7%，是降本重点</div>
+  `;
+
+  // BOM Pareto
+  const items = [
+    { label:'MCU', pct:21.4 },
+    { label:'MOS 管', pct:11.1 },
+    { label:'PCB', pct:9.2 },
+    { label:'外壳', pct:9.9 },
+    { label:'其他', pct:48.4 }
+  ];
+  const w = document.getElementById('bomPareto').offsetWidth - 20;
+  const h = 180;
+  const pad = { top: 20, bottom: 30, left: 40, right: 40 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+  const barW = cw / items.length * 0.6;
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}">`;
+  items.forEach((item, i) => {
+    const x = pad.left + (cw / items.length) * i + (cw / items.length - barW) / 2;
+    const bh = (item.pct / 100) * ch;
+    const color = i < 2 ? '#ef4444' : i < 3 ? '#f59e0b' : '#6c63ff';
+    svg += `<rect x="${x}" y="${pad.top+ch-bh}" width="${barW}" height="${bh}" fill="${color}" opacity="0.8" rx="2"/>`;
+    svg += `<text x="${x+barW/2}" y="${pad.top+ch+14}" text-anchor="middle" fill="#4b5563" font-size="9">${item.label}</text>`;
+    svg += `<text x="${x+barW/2}" y="${pad.top+ch-bh-4}" text-anchor="middle" fill="#374151" font-size="9" font-weight="600">${item.pct}%</text>`;
+  });
+  svg += '</svg>';
+  document.getElementById('bomPareto').innerHTML = svg;
+}
+
+// ====== Target Costing ======
+function drawTarget() {
+  // target chart
+  const labels = ['MCU','MOS','PCB\n(4层)','MLCC','连接器','外壳','其他','合计'];
+  const current = [18.5, 9.6, 8.0, 5.2, 2.4, 8.6, 120.9, 173.2];
+  const target = [16.0, 7.2, 5.2, 4.5, 2.2, 7.5, 106.65, 149.25];
+  makeBarChart('targetChart', labels, [
+    { data: current, color:'#ef4444' },
+    { data: target, color:'#10b981' },
+  ], { height: 180 });
+
+  // target path
+  document.getElementById('targetPath').innerHTML = `
+    <table>
+      <tr><th>降本路径</th><th>节约</th><th>方法</th><th>周期</th><th>状态</th></tr>
+      <tr>
+        <td>MCU 替代方案</td>
+        <td style="color:#10b981;font-weight:600;">-¥2.50</td>
+        <td>兼容型号替代，功能不变</td>
+        <td>1-2 月</td>
+        <td><span class="tag yellow">进行中</span></td>
+      </tr>
+      <tr>
+        <td>MOS 管 VE 优化</td>
+        <td style="color:#10b981;font-weight:600;">-¥2.40</td>
+        <td>国产替代 + 设计变更</td>
+        <td>2-3 月</td>
+        <td><span class="tag yellow">进行中</span></td>
+      </tr>
+      <tr>
+        <td>PCB 层数降级</td>
+        <td style="color:#10b981;font-weight:600;">-¥2.80</td>
+        <td>4 层→2 层</td>
+        <td>3-4 月</td>
+        <td><span class="tag blue">评估中</span></td>
+      </tr>
+      <tr>
+        <td>MLCC 供应商切换</td>
+        <td style="color:#10b981;font-weight:600;">-¥0.70</td>
+        <td>本土供应商替代</td>
+        <td>1 月</td>
+        <td><span class="tag green">已批准</span></td>
+      </tr>
+      <tr>
+        <td>其他 BOM 优化</td>
+        <td style="color:#10b981;font-weight:600;">-¥3.55</td>
+        <td>标准化/批量折扣/包装优化</td>
+        <td>1-3 月</td>
+        <td><span class="tag green">已批准</span></td>
+      </tr>
+      <tr class="highlight-row">
+        <td><strong>合计节约</strong></td>
+        <td style="color:#10b981;font-weight:700;">-¥11.95</td>
+        <td colspan="3"><strong>当前差距 ¥23.95，还需继续挖掘 ¥12.00</strong></td>
+      </tr>
+    </table>
+    <div style="font-size:11px;color:#6b7280;margin-top:8px;padding:8px;background:#f5f3ff;border-radius:6px;">
+      💡 目标成本达成率 73%。建议开展跨部门 VA/VE 工作坊，重点攻关 MCU 和 MOS 管的替代方案。
+    </div>
+  `;
+}
+
+// ====== Modals ======
+const modals = {
+  tcoDetail: {
+    title: '💰 TCO 总拥有成本模型',
+    body: `<p><strong>Total Cost of Ownership</strong> — 不仅看采购单价，而是评估产品全生命周期的所有成本。</p>
+    <h4>TCO = 采购价 + 物流成本 + 关税 + 库存持有成本 + 质量损失成本 + 售后成本 + 报废处置成本</h4>
+    <table style="margin-top:12px;"><tr><th>成本类别</th><th>说明</th><th>电子元器件典型占比</th></tr>
+    <tr><td>采购价</td><td>供应商报价</td><td>75-85%</td></tr>
+    <tr><td>物流/关税</td><td>运费、保险费、关税、港口费用</td><td>5-15%</td></tr>
+    <tr><td>库存持有</td><td>资金占用、仓储、老化/报废风险</td><td>3-8%</td></tr>
+    <tr><td>质量损失</td><td>来料不良返工、产线停线损失、客户退货</td><td>2-6%</td></tr>
+    <tr><td>售后/其他</td><td>技术支持、退换货处理、供应商管理</td><td>1-3%</td></tr>
+    </table>
+    <p style="margin-top:12px;"><strong>实操建议：</strong>对于 MLCC 等进口依赖度高的品类，TCO 溢价率可达 30%+。建议优先评估本土替代供应商的 TCO 优势。</p>`,
+  },
+  abcDetail: {
+    title: '📋 ABC 作业成本法模型',
+    body: `<p><strong>Activity-Based Costing</strong> — 将间接成本按实际消耗的作业活动进行分摊，避免传统成本法的扭曲。</p>
+    <h4>实施四步法：</h4>
+    <ol style="font-size:13px;color:#374151;line-height:1.8;padding-left:20px;">
+      <li><strong>识别作业活动</strong> — 来料检验、订单处理、仓储管理、供应商审核、物流协调、品质处理等</li>
+      <li><strong>归集资源成本</strong> — 人力、设备、系统、场地等费用归集到各活动</li>
+      <li><strong>选择成本动因</strong> — 检验批次数、订单行数、入库次数、审核次数等</li>
+      <li><strong>分摊到物料</strong> — 各物料按实际消耗的活动量分摊间接费用</li>
+    </ol>
+    <p style="margin-top:12px;"><strong>电子元器件中的应用：</strong></p>
+    <ul style="font-size:13px;color:#374151;line-height:1.6;padding-left:20px;">
+      <li>MLCC 来料批次多、检验成本高，ABC 能真实反映其成本结构</li>
+      <li>可据此优化检验策略：对高信任供应商降低抽检频次</li>
+      <li>为供应商整合提供量化依据</li>
+    </ul>`,
+  },
+  vaveDetail: {
+    title: '⚡ VA/VE 价值分析与价值工程',
+    body: `<p><strong>Value Analysis / Value Engineering</strong> — 核心公式：<strong>价值 = 功能 ÷ 成本</strong></p>
+    <p>VE（价值工程）：在产品设计阶段，以最低成本实现必要功能<br>VA（价值分析）：对现有产品进行分析，寻找降本机会</p>
+    <h4>五步实施法：</h4>
+    <ol style="font-size:13px;color:#374151;line-height:1.8;padding-left:20px;">
+      <li><strong>信息收集</strong> — BOM、成本结构、功能要求、使用场景</li>
+      <li><strong>功能分析</strong> — 定义每个元器件的核心功能，评定功能评分</li>
+      <li><strong>创意生成</strong> — 头脑风暴替代方案、标准化、功能整合等</li>
+      <li><strong>评估筛选</strong> — 评估方案的技术可行性和成本节约潜力</li>
+      <li><strong>实施跟进</strong> — 制定实施计划，追踪节约效果</li>
+    </ol>
+    <p style="margin-top:12px;"><strong>电子元器件的常见 VE 方向：</strong>国产替代、封装标准化、功能整合、规格降级、 eliminate 冗余功能</p>`,
+  },
+  bomDetail: {
+    title: '🔩 BOM 成本分析方法',
+    body: `<p><strong>Bill of Materials 成本分析</strong> — 从 BOM 层级结构逐层拆解，定位成本优化机会。</p>
+    <h4>分析维度：</h4>
+    <ul style="font-size:13px;color:#374151;line-height:1.6;padding-left:20px;">
+      <li><strong>帕累托分析</strong> — 找出占成本 80% 的 TOP 20% 料号，重点攻关</li>
+      <li><strong>层级分析</strong> — 从系统到元器件逐层钻取，定位成本异常层级</li>
+      <li><strong>横向对比</strong> — 同类产品 BOM 对比，发现差异点</li>
+      <li><strong>趋势分析</strong> — 跟踪关键料号价格走势，预判成本变化</li>
+    </ul>
+    <h4>电子元器件 BOM 拆解要点：</h4>
+    <ul style="font-size:13px;color:#374151;line-height:1.6;padding-left:20px;">
+      <li>MCU 类通常占 BOM 成本 15-25%，是降本第一目标</li>
+      <li>被动件（MLCC/电阻）虽单价低但用量大，标准化可显著降本</li>
+      <li>PCB 成本与层数/面积强相关，功能不冗余时可降层省成本</li>
+      <li>连接器选型标准化可减少 SKU 数量和采购复杂度</li>
+    </ul>`,
+  },
+  targetDetail: {
+    title: '🎯 Target Costing 目标成本法',
+    body: `<p><strong>目标成本法</strong> — 从市场可接受售价出发，倒推 allowable cost，再分解到各零部件和工序。</p>
+    <h4>操作流程：</h4>
+    <ol style="font-size:13px;color:#374151;line-height:1.8;padding-left:20px;">
+      <li><strong>确定目标售价</strong> — 基于市场调研、竞品对标、客户意愿价格</li>
+      <li><strong>设定目标利润</strong> — 公司战略利润率要求</li>
+      <li><strong>计算 Allowable Cost</strong> — 目标售价 - 目标利润</li>
+      <li><strong>分解到 BOM</strong> — 按各部件功能重要性分配成本预算</li>
+      <li><strong>差距分析</strong> — 当前成本 vs 目标成本，制定降本路径</li>
+      <li><strong>跨部门协同</strong> — 研发、采购、供应商共同攻关</li>
+    </ol>
+    <p style="margin-top:12px;"><strong>电子元器件中的应用：</strong></p>
+    <ul style="font-size:13px;color:#374151;line-height:1.6;padding-left:20px;">
+      <li>新品开发阶段最能发挥 target costing 价值（80% 的成本在设计阶段锁定）</li>
+      <li>与 VA/VE 结合使用：目标成本给出"要降多少"，VA/VE 给出"怎么降"</li>
+      <li>倒逼供应商早期介入（ESI），共同优化设计方案</li>
+    </ul>`,
+  },
+  skill: {
+    title: '📄 采购智控 · 完整 SKILL 设计稿',
+    body: `<p>以下是完整的 SKILL.md 设计，包含全部五种成本分析方法，可以直接保存使用。</p>
+    <pre style="background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;line-height:1.6;overflow-x:auto;">
+## 核心能力
+
+### 1. 成本分析 (五维模型)
+- **TCO 总拥有成本**：采购价 + 物流 + 关税 + 库存 + 质量 + 售后全生命周期
+- **ABC 作业成本**：12 个成本动因活动，精确分摊间接费用
+- **VA/VE 价值分析**：功能评分 vs 成本矩阵，定位降本不降功能的机会
+- **BOM 成本拆解**：多层级钻取 + 帕累托 + 横向对标 + 价格趋势
+- **Target Costing**：目标售价 → 目标利润 → Allowable Cost → 差距分析 → 降本路径
+
+### 2. 需求预测
+- 移动平均 / 指数平滑 / 简易 ML 三种模型
+- 季节性因子自动计算
+- 预测准确率追踪（MAE）
+
+### 3. 供应商管理
+- 四维评分模型：质量(35%)/交期(30%)/价格(20%)/服务(15%)
+- 供应商 A-D 分级
+- TCO 综合排名
+
+### 4. 库存健康度
+- 当前库存 vs 安全水位 vs 预警线
+- 缺料风险等级标注
+- AI 建议补货计划
+
+### 5. 自动报告
+- 一键生成采购仪表盘 (HTML/PDF/Excel)
+- 异常自动预警（价格波动、交期延迟、库存告急）
+- 每月 1 日自动推送采购简报
+
+## 使用方法
+- "帮我做月度采购成本分析" → 自动生成五维成本报告
+- "分析这个 BOM 的降本机会" → BOM 拆解 + VE 建议
+- "评估供应商的综合表现" → 供应商评分卡
+- "MCU 这个料有没有降价空间" → TCO + Target Costing 分析
+    </pre>
+    <p style="margin-top:12px;font-size:13px;color:#6b7280;">你觉得这个框架方向对吗？如果确认，我可以把完整 SKILL.md 输出为可保存的文件。</p>`,
+  },
+};
+
+function openModal(key) {
+  const d = modals[key];
+  if (!d) return;
+  document.getElementById('modalTitle').textContent = d.title;
+  document.getElementById('modalBody').innerHTML = d.body;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(e) {
+  if (e && e.target !== e.currentTarget && !e.target.closest('.modal')) return;
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+// ====== Draw all ======
+function drawAll() {
+  if (document.getElementById('tab-overview').classList.contains('active')) {
+    drawOpportunity();
+  }
+  if (document.getElementById('tab-tco').classList.contains('active')) {
+    drawTCO();
+  }
+  if (document.getElementById('tab-abc').classList.contains('active')) {
+    drawABC();
+  }
+  if (document.getElementById('tab-vave').classList.contains('active')) {
+    drawVAVE();
+  }
+  if (document.getElementById('tab-bom').classList.contains('active')) {
+    drawBOM();
+  }
+  if (document.getElementById('tab-target').classList.contains('active')) {
+    drawTarget();
+  }
+}
+
+// ====== Init ======
+drawOpportunity();
+drawTCO();
+drawABC();
+drawVAVE();
+drawBOM();
+drawTarget();
+
+window.addEventListener('resize', () => { drawAll(); });
+</script>
+</body>
+</html>
