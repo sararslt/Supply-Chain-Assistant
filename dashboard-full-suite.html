@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采购智控 · 全功能套件 Demo</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #f5f7fa; color: #1a1a2e; padding: 24px;
+  }
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; }
+  .header h1 { font-size:24px; font-weight:700; color:#1a1a2e; }
+  .header h1 span { color:#6c63ff; }
+  .header .date { color:#6b7280; font-size:14px; }
+  .nav-tabs { display:flex; gap:4px; background:#e5e7eb; border-radius:10px; padding:4px; margin-bottom:24px; flex-wrap:wrap; }
+  .nav-tabs button {
+    padding:8px 18px; border:none; border-radius:7px; font-size:13px; font-weight:500;
+    cursor:pointer; background:transparent; color:#6b7280; transition:all 0.15s;
+  }
+  .nav-tabs button.active { background:#fff; color:#1a1a2e; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+  .stat-card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+  .stat-card .label { font-size:13px; color:#6b7280; margin-bottom:4px; }
+  .stat-card .value { font-size:26px; font-weight:700; }
+  .stat-card .sub { font-size:12px; margin-top:4px; }
+  .stat-card .sub.up { color:#10b981; }
+  .stat-card .sub.down { color:#ef4444; }
+  .stat-card .sub.warn { color:#f59e0b; }
+
+  .row { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:24px; }
+  .row-full { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  .row-triple { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:24px; }
+  .card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+  .card h3 { font-size:15px; font-weight:600; margin-bottom:16px; color:#374151; }
+  .card h3 small { font-weight:400; font-size:12px; color:#9ca3af; margin-left:6px; }
+  .card h4 { font-size:13px; font-weight:600; margin:12px 0 8px; color:#4b5563; }
+
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; padding:8px 6px; color:#6b7280; font-weight:500; border-bottom:1px solid #e5e7eb; }
+  td { padding:8px 6px; border-bottom:1px solid #f3f4f6; }
+  .highlight-row { background:#f5f3ff; }
+
+  .tag { display:inline-block; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:500; }
+  .tag.green { background:#d1fae5; color:#065f46; }
+  .tag.yellow { background:#fef3c7; color:#92400e; }
+  .tag.red { background:#fee2e2; color:#991b1b; }
+  .tag.blue { background:#dbeafe; color:#1e40af; }
+  .tag.purple { background:#f3e8ff; color:#6b21a8; }
+  .tag.gray { background:#f3f4f6; color:#4b5563; }
+
+  .chart-area { height:200px; position:relative; margin-bottom:8px; }
+  .chart-area svg { width:100%; height:100%; }
+  .legend { display:flex; gap:16px; font-size:12px; color:#6b7280; flex-wrap:wrap; }
+  .legend-item { display:flex; align-items:center; gap:4px; }
+
+  .actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .actions button {
+    padding:8px 16px; border:none; border-radius:8px; font-size:12px;
+    font-weight:500; cursor:pointer; transition:all 0.2s;
+  }
+  .actions button.primary { background:#6c63ff; color:#fff; }
+  .actions button.primary:hover { background:#5a52e0; }
+  .actions button.secondary { background:#e5e7eb; color:#374151; }
+  .actions button.secondary:hover { background:#d1d5db; }
+  .actions button.success { background:#10b981; color:#fff; }
+  .actions button.success:hover { background:#059669; }
+  .actions button.danger { background:#ef4444; color:#fff; }
+  .actions button.danger:hover { background:#dc2626; }
+  .actions button.warning { background:#f59e0b; color:#fff; }
+  .actions button.warning:hover { background:#d97706; }
+
+  .status-indicator { display:inline-flex; align-items:center; gap:5px; }
+  .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .status-dot.green { background:#10b981; }
+  .status-dot.yellow { background:#f59e0b; }
+  .status-dot.red { background:#ef4444; }
+  .status-dot.gray { background:#9ca3af; }
+
+  .weight-slider { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .weight-slider label { font-size:12px; color:#4b5563; min-width:100px; }
+  .weight-slider input { flex:1; }
+  .weight-slider .val { font-size:12px; font-weight:600; color:#6c63ff; min-width:36px; text-align:right; }
+
+  .alert-item { display:flex; align-items:start; gap:10px; padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:13px; }
+  .alert-item:last-child { border-bottom:none; }
+  .alert-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+  .progress-bar { height:6px; border-radius:3px; background:#e5e7eb; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:3px; }
+  .metric-box { background:#f8fafc; border-radius:8px; padding:14px; text-align:center; border:1px solid #e5e7eb; }
+  .metric-box .m-value { font-size:22px; font-weight:700; }
+  .metric-box .m-label { font-size:11px; color:#6b7280; margin-top:2px; }
+  .method-card { background:#f8fafc; border-radius:10px; padding:16px; border:1px solid #e5e7eb; transition:all 0.2s; cursor:pointer; }
+  .method-card:hover { border-color:#6c63ff; box-shadow:0 2px 8px rgba(108,99,255,0.1); }
+  .method-card .method-title { font-weight:600; font-size:14px; margin-bottom:6px; }
+  .method-card .method-desc { font-size:12px; color:#6b7280; line-height:1.5; }
+  .method-card .method-tag { font-size:10px; padding:1px 8px; border-radius:999px; display:inline-block; margin-top:8px; }
+  .bom-indent { padding-left:20px !important; font-size:12px; color:#6b7280; }
+
+  @media (max-width:900px) {
+    .stats-grid { grid-template-columns:repeat(2,1fr); }
+    .row, .row-full, .row-triple { grid-template-columns:1fr; }
+  }
+
+  .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.4); z-index:1000; justify-content:center; align-items:center; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:#fff; border-radius:16px; padding:28px; max-width:620px; width:90%; max-height:85vh; overflow-y:auto; }
+  .modal h2 { font-size:18px; margin-bottom:16px; }
+  .modal p { font-size:13px; color:#6b7280; line-height:1.6; margin-bottom:12px; }
+  .feat-list { list-style:none; padding:0; }
+  .feat-list li { padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:13px; display:flex; align-items:flex-start; gap:10px; }
+  .feat-list li:last-child { border-bottom:none; }
+  .feat-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .gauge-container { display:flex; align-items:center; gap:24px; padding:8px 0; }
+  .gauge { position:relative; width:80px; height:80px; }
+  .gauge svg { transform:rotate(-90deg); }
+  .gauge .center-text { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:16px; font-weight:700; }
+  .score-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🔌 采购智控 <span>· 完整套件</span></h1>
+    <div style="font-size:13px;color:#6b7280;margin-top:2px;">电子元器件 · 成本分析 + 供应商全生命周期管理</div>
+  </div>
+  <div class="date" id="currentDate"></div>
+</div>
+
+<!-- Nav tabs -->
+<div class="nav-tabs">
+  <button class="active" data-tab="tab-overview" onclick="switchTab('tab-overview')">📊 总览</button>
+  <button data-tab="tab-supplier" onclick="switchTab('tab-supplier')">🏭 供应商管理</button>
+  <button data-tab="tab-tco" onclick="switchTab('tab-tco')">💰 TCO</button>
+  <button data-tab="tab-abc" onclick="switchTab('tab-abc')">📋 ABC</button>
+  <button data-tab="tab-vave" onclick="switchTab('tab-vave')">⚡ VA/VE</button>
+  <button data-tab="tab-bom" onclick="switchTab('tab-bom')">🔩 BOM</button>
+  <button data-tab="tab-target" onclick="switchTab('tab-target')">🎯 Target</button>
+</div>
+
+<!-- ================================================================ -->
+<!-- TAB 0: OVERVIEW -->
+<!-- ================================================================ -->
+<div class="tab-content active" id="tab-overview">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="label">活跃供应商数</div><div class="value" style="color:#6c63ff;">23</div><div class="sub up">↑ 2 家本月新增 · A级6家</div></div>
+    <div class="stat-card"><div class="label">综合评分均值</div><div class="value" style="color:#10b981;">86.3</div><div class="sub up">同比 +2.1 · 供应商整体改善</div></div>
+    <div class="stat-card"><div class="label">高风险供应商</div><div class="value" style="color:#ef4444;">3</div><div class="sub down">需立即跟进 · 交期/质量风险</div></div>
+    <div class="stat-card"><div class="label">月度采购支出</div><div class="value" style="color:#f59e0b;">¥384.6K</div><div class="sub warn">TCO 隐性溢价 18.3%</div></div>
+  </div>
+
+  <div class="row-full">
+    <div class="card">
+      <h3>🏭 供应商概览 <small>按等级分布</small></h3>
+      <div class="chart-area" id="supplierOverviewChart"></div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> A级 (≥90)</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span> B级 (80-89)</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> C级 (70-79)</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> D级 (&lt;70)</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>⚡ 近期预警</h3>
+      <div id="overviewAlerts"></div>
+    </div>
+  </div>
+
+  <div class="row-triple">
+    <div class="card">
+      <h3>💰 成本分析套件</h3>
+      <div style="display:grid;gap:8px;">
+        <div class="method-card" onclick="switchTab('tab-tco')"><div class="method-title">💰 TCO 总拥有成本</div><div class="method-desc">全生命周期成本分析 · 隐性成本识别</div><span class="method-tag tag blue">隐性溢价 18.3%</span></div>
+        <div class="method-card" onclick="switchTab('tab-abc')"><div class="method-title">📋 ABC 作业成本</div><div class="method-desc">12 成本动因 · 间接费用精确分摊</div><span class="method-tag tag purple">揭示成本扭曲</span></div>
+        <div class="method-card" onclick="switchTab('tab-vave')"><div class="method-title">⚡ VA/VE 价值分析</div><div class="method-desc">功能评分 × 成本矩阵 · 降本不降功能</div><span class="method-tag tag green">节约潜力 ¥28.6K</span></div>
+        <div class="method-card" onclick="switchTab('tab-bom')"><div class="method-title">🔩 BOM 成本拆解</div><div class="method-desc">层级钻取 · 帕累托 · 横向对标</div><span class="method-tag tag yellow">TOP3 占 41.7%</span></div>
+        <div class="method-card" onclick="switchTab('tab-target')"><div class="method-title">🎯 Target Costing</div><div class="method-desc">售价倒推 · 差距分析 · 降本路径</div><span class="method-tag tag red">达成率 73%</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>🏭 供应商管理核心功能</h3>
+      <div style="display:grid;gap:8px;">
+        <div class="method-card" onclick="switchTab('tab-supplier')" style="border-color:#6c63ff;">
+          <div class="method-title">⭐ 五维加权评分</div>
+          <div class="method-desc">报价(25%) · 品质(25%) · 交期(20%) · 服务(15%) · 可持续供货(15%) · 权重可调</div>
+        </div>
+        <div class="method-card" onclick="switchTab('tab-supplier')">
+          <div class="method-title">🔄 全生命周期管理</div>
+          <div class="method-desc">引入评估 → 试产 → 正式合作 → 绩效考核 → 淘汰/升级</div>
+        </div>
+        <div class="method-card" onclick="switchTab('tab-supplier')">
+          <div class="method-title">📈 绩效趋势追踪</div>
+          <div class="method-desc">近 6 个月评分走势 · 异常检测 · 自动预警</div>
+        </div>
+        <div class="method-card" onclick="switchTab('tab-supplier')">
+          <div class="method-title">📄 合同 & 资质管理</div>
+          <div class="method-desc">合同到期提醒 · 资质证书到期预警 · 快速续签</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>💡 综合分析建议</h3>
+      <div style="padding:10px;background:#f5f3ff;border-radius:8px;margin-bottom:8px;">
+        <div style="font-weight:600;color:#6c63ff;font-size:13px;">📌 供应商维度</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:4px;">3 家供应商连续 2 月评分下降，建议启动 improvement plan。1 家进入 D 级，考虑替代方案。</div>
+      </div>
+      <div style="padding:10px;background:#fefce8;border-radius:8px;margin-bottom:8px;">
+        <div style="font-weight:600;color:#f59e0b;font-size:13px;">📌 成本维度</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:4px;">MLCC 品类 TCO 溢价 32%，建议切换本土供应商。目标成本差距 ¥23.95，VA/VE 工作坊需尽快启动。</div>
+      </div>
+      <div style="padding:10px;background:#ecfdf5;border-radius:8px;">
+        <div style="font-weight:600;color:#10b981;font-size:13px;">📌 风险维度</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:4px;">4 份合同将在 60 天内到期，需提前启动续签谈判。2 家供应商资质证书即将过期。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TAB 1: SUPPLIER MANAGEMENT -->
+<!-- ================================================================ -->
+<div class="tab-content" id="tab-supplier">
+  <!-- Weight Config Banner -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <h3 style="margin-bottom:0;">⚙️ 评分权重配置</h3>
+      <div style="font-size:12px;color:#6b7280;">拖动滑条调整各维度权重，总权重 = <span id="weightTotal" style="font-weight:700;color:#6c63ff;">100</span>%</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px;">
+      <div><div class="weight-slider"><label>💰 报价</label><input type="range" min="0" max="50" value="25" id="w-price" oninput="updateWeights()"><span class="val" id="w-price-val">25%</span></div></div>
+      <div><div class="weight-slider"><label>✅ 品质</label><input type="range" min="0" max="50" value="25" id="w-quality" oninput="updateWeights()"><span class="val" id="w-quality-val">25%</span></div></div>
+      <div><div class="weight-slider"><label>🚚 交期</label><input type="range" min="0" max="50" value="20" id="w-delivery" oninput="updateWeights()"><span class="val" id="w-delivery-val">20%</span></div></div>
+      <div><div class="weight-slider"><label>🤝 服务</label><input type="range" min="0" max="50" value="15" id="w-service" oninput="updateWeights()"><span class="val" id="w-service-val">15%</span></div></div>
+      <div><div class="weight-slider"><label>🔋 可持续供货</label><input type="range" min="0" max="50" value="15" id="w-sustain" oninput="updateWeights()"><span class="val" id="w-sustain-val">15%</span></div></div>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="label">供应商总数</div><div class="value" style="color:#6c63ff;">23</div><div class="sub">管理供应商库</div></div>
+    <div class="stat-card"><div class="label">A 级供应商</div><div class="value" style="color:#10b981;">6</div><div class="sub up">占 26% · 战略合作</div></div>
+    <div class="stat-card"><div class="label">需改进 (C/D 级)</div><div class="value" style="color:#f59e0b;">5</div><div class="sub warn">C 级 2 + D 级 3</div></div>
+    <div class="stat-card"><div class="label">生命周期分布</div><div class="value" style="color:#3b82f6;">3/5/10/5</div><div class="sub">引入/成长/成熟/淘汰</div></div>
+  </div>
+
+  <!-- 2x2 grid for supplier tab -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <h3 style="margin-bottom:0;">⭐ 供应商综合评分排名 <small>按加权总分排序</small></h3>
+      <div style="font-size:12px;color:#6b7280;">评分已按当前权重实时计算</div>
+    </div>
+    <div id="supplierRankingTable"></div>
+  </div>
+
+  <div class="row-full">
+    <div class="card">
+      <h3>📈 供应商绩效趋势 <small>TOP 6 近 6 个月</small></h3>
+      <div class="chart-area" id="supplierTrendChart"></div>
+      <div class="legend" id="trendLegend"></div>
+    </div>
+    <div class="card">
+      <h3>🔍 五维雷达对比 <small>选中供应商对比</small></h3>
+      <div class="chart-area" id="radarChart"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;" id="radarSelector"></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h3>🔄 供应商全生命周期 <small>当前状态分布</small></h3>
+      <div id="lifecycleView"></div>
+    </div>
+    <div class="card">
+      <h3>📄 合同与资质预警</h3>
+      <div id="contractAlerts"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TABS 2-6: Cost Analysis (condensed versions) -->
+<!-- ================================================================ -->
+<div class="tab-content" id="tab-tco">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="label">平均 TCO / 采购价</div><div class="value" style="color:#6c63ff;">1.18x</div><div class="sub warn">隐性成本 18%</div></div>
+    <div class="stat-card"><div class="label">显性成本</div><div class="value">84.5%</div><div class="sub">采购价+运费+关税</div></div>
+    <div class="stat-card"><div class="label">隐性成本</div><div class="value" style="color:#ef4444;">15.5%</div><div class="sub down">库存+质量+售后</div></div>
+    <div class="stat-card"><div class="label">最大优化空间</div><div class="value" style="color:#10b981;">¥42.3K</div><div class="sub up">MLCC 切换本地供应商</div></div>
+  </div>
+  <div class="row">
+    <div class="card"><h3>💰 TCO 成本结构对比</h3><div class="chart-area" id="tcoChart"></div><div class="legend"><span class="legend-item"><span class="legend-dot" style="background:#6c63ff;"></span>采购价</span><span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>物流/关税</span><span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span>库存持有</span><span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>质量损失</span><span class="legend-item"><span class="legend-dot" style="background:#9ca3af;"></span>售后/其他</span></div></div>
+    <div class="card"><h3>🏆 供应商 TCO 排名</h3><div id="tcoSupplierRank"></div></div>
+  </div>
+</div>
+
+<div class="tab-content" id="tab-abc">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="label">总间接费用</div><div class="value">¥96.2K</div><div class="sub">占采购额 25%</div></div>
+    <div class="stat-card"><div class="label">ABC 活动数</div><div class="value">12</div><div class="sub">定义成本动因</div></div>
+    <div class="stat-card"><div class="label">最大成本动因</div><div class="value" style="color:#f59e0b;">来料检验</div><div class="sub warn">占间接费 22%</div></div>
+    <div class="stat-card"><div class="label">节约潜力</div><div class="value" style="color:#10b981;">¥18.5K</div><div class="sub up">优化检验频次</div></div>
+  </div>
+  <div class="row-full">
+    <div class="card"><h3>📋 作业活动成本分摊</h3><div class="chart-area" id="abcChart"></div></div>
+    <div class="card"><h3>🔍 ABC vs 传统分摊对比</h3><div id="abcComparison"></div></div>
+  </div>
+</div>
+
+<div class="tab-content" id="tab-vave">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="label">高价值料号</div><div class="value" style="color:#10b981;">6</div><div class="sub up">价值指数≥1.2</div></div>
+    <div class="stat-card"><div class="label">需优化料号</div><div class="value" style="color:#ef4444;">4</div><div class="sub down">价值指数≤0.8</div></div>
+    <div class="stat-card"><div class="label">节约潜力</div><div class="value" style="color:#f59e0b;">¥28.6K</div><div class="sub warn">VA/VE 工作坊</div></div>
+    <div class="stat-card"><div class="label">价值指数基准</div><div class="value">1.0</div><div class="sub">功能/成本比</div></div>
+  </div>
+  <div class="row">
+    <div class="card"><h3>⚡ 价值分析矩阵</h3><div class="chart-area" id="vaveChart"></div><div class="legend"><span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>高价值</span><span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span>需关注</span><span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>需优化</span></div></div>
+    <div class="card"><h3>🔧 VA/VE 改善建议</h3><div id="vaveSuggestions"></div></div>
+  </div>
+</div>
+
+<div class="tab-content" id="tab-bom">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="label">BOM 总成本</div><div class="value">¥86.50</div><div class="sub">单台产品</div></div>
+    <div class="stat-card"><div class="label">BOM 层级数</div><div class="value">4</div><div class="sub">系统→元器件</div></div>
+    <div class="stat-card"><div class="label">TOP3 占比</div><div class="value" style="color:#ef4444;">62%</div><div class="sub down">高度集中</div></div>
+    <div class="stat-card"><div class="label">优化潜力</div><div class="value" style="color:#10b981;">¥12.80</div><div class="sub up">单台降本 14.8%</div></div>
+  </div>
+  <div class="row">
+    <div class="card"><h3>🔩 BOM 层级成本拆解</h3><div id="bomTable"></div></div>
+    <div class="card"><h3>📊 帕累托分析</h3><div class="chart-area" id="bomPareto"></div></div>
+  </div>
+</div>
+
+<div class="tab-content" id="tab-target">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="label">目标售价</div><div class="value">¥199</div><div class="sub">市场对标</div></div>
+    <div class="stat-card"><div class="label">目标利润 25%</div><div class="value" style="color:#10b981;">¥49.75</div><div class="sub up">Allowable ¥149.25</div></div>
+    <div class="stat-card"><div class="label">当前成本</div><div class="value" style="color:#ef4444;">¥173.20</div><div class="sub down">超目标 ¥23.95</div></div>
+    <div class="stat-card"><div class="label">成本差距</div><div class="value" style="color:#f59e0b;">-13.8%</div><div class="sub warn">需价值链降本</div></div>
+  </div>
+  <div class="row">
+    <div class="card"><h3>🎯 目标成本分解</h3><div class="chart-area" id="targetChart"></div></div>
+    <div class="card"><h3>📋 降本路径规划</h3><div id="targetPath"></div></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" id="modalContent">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div class="actions" style="margin-top:16px;"><button class="secondary" onclick="closeModal()">关闭</button></div>
+  </div>
+</div>
+
+<script>
+// ====== Date ======
+const now = new Date();
+document.getElementById('currentDate').textContent = `更新于 ${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+// ====== Tab switching ======
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-tabs button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+  setTimeout(()=>drawAll(), 50);
+}
+
+// ====== SVG Helpers ======
+function makeStackedBar(id, labels, datasets, opts={}) {
+  const c = document.getElementById(id); if(!c)return;
+  const w=c.offsetWidth-20,h=opts.height||180,pad={top:20,bottom:30,left:40,right:20};
+  const cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom;
+  let max=0; labels.forEach((_,i)=>{let s=0;datasets.forEach(d=>{s+=d.data[i]||0});if(s>max)max=s});
+  max*=1.15; const stepX=cw/(labels.length-1||1),barW=Math.min(stepX*0.6,40);
+  let svg=`<svg viewBox="0 0 ${w} ${h}">`;
+  for(let i=0;i<=4;i++){const y=pad.top+(ch/4)*i; svg+=`<line x1="${pad.left}" y1="${y}" x2="${w-pad.right}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/><text x="${pad.left-6}" y="${y+4}" text-anchor="end" fill="#9ca3af" font-size="10">${Math.round(max-(max/4)*i)}</text>`;}
+  labels.forEach((m,i)=>{svg+=`<text x="${pad.left+stepX*i}" y="${h-6}" text-anchor="middle" fill="#9ca3af" font-size="10">${m}</text>`;});
+  labels.forEach((_,i)=>{let yB=pad.top+ch;datasets.forEach(d=>{const v=d.data[i]||0,bh=v/max*ch;svg+=`<rect x="${pad.left+stepX*i-barW/2}" y="${yB-bh}" width="${barW}" height="${Math.max(bh,1)}" fill="${d.color}" opacity="0.85" rx="2"/>`;yB-=bh;});});
+  svg+='</svg>';c.innerHTML=svg;
+}
+function makeGroupedBar(id, labels, datasets, opts={}) {
+  const c=document.getElementById(id);if(!c)return;
+  const w=c.offsetWidth-20,h=opts.height||180,pad={top:20,bottom:30,left:40,right:20};
+  const cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom;
+  let max=0;datasets.forEach(d=>d.data.forEach(v=>{if(v>max)max=v}));max*=1.15;
+  const stepX=cw/(labels.length-1||1),barW=Math.min(stepX*0.6,40)/datasets.length;
+  let svg=`<svg viewBox="0 0 ${w} ${h}">`;
+  for(let i=0;i<=4;i++){const y=pad.top+(ch/4)*i;svg+=`<line x1="${pad.left}" y1="${y}" x2="${w-pad.right}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/><text x="${pad.left-6}" y="${y+4}" text-anchor="end" fill="#9ca3af" font-size="10">${Math.round(max-(max/4)*i)}</text>`;}
+  labels.forEach((m,i)=>{svg+=`<text x="${pad.left+stepX*i}" y="${h-6}" text-anchor="middle" fill="#9ca3af" font-size="10">${m}</text>`;});
+  labels.forEach((_,i)=>{datasets.forEach((d,di)=>{const v=d.data[i]||0,bh=v/max*ch;const x=pad.left+stepX*i-(datasets.length*barW)/2+di*barW;svg+=`<rect x="${x}" y="${pad.top+ch-bh}" width="${Math.max(barW-2,1)}" height="${Math.max(bh,1)}" fill="${d.color}" opacity="0.85" rx="2"/>`;});});
+  svg+='</svg>';c.innerHTML=svg;
+}
+function makeHBar(id, labels, values, colors, opts={}) {
+  const c=document.getElementById(id);if(!c)return;
+  const w=c.offsetWidth-20,h=opts.height||180,pad={top:10,bottom:20,left:80,right:50};
+  const cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom,barH=Math.min(ch/labels.length,28),max=Math.max(...values)*1.1;
+  let svg=`<svg viewBox="0 0 ${w} ${h}">`;
+  labels.forEach((l,i)=>{const y=pad.top+barH*i+(ch-labels.length*barH)/2;svg+=`<text x="${pad.left-8}" y="${y+barH/2+4}" text-anchor="end" fill="#4b5563" font-size="11">${l}</text><rect x="${pad.left}" y="${y+2}" width="${(values[i]/max)*cw}" height="${barH-4}" rx="3" fill="${colors[i]}" opacity="0.85"/><text x="${pad.left+(values[i]/max)*cw+6}" y="${y+barH/2+4}" fill="#374151" font-size="11" font-weight="500">${values[i]}${opts.suffix||''}</text>`;});
+  svg+='</svg>';c.innerHTML=svg;
+}
+function makeLineChart(id, labels, datasets, opts={}) {
+  const c=document.getElementById(id);if(!c)return;
+  const w=c.offsetWidth-20,h=opts.height||180,pad={top:20,bottom:30,left:40,right:20};
+  const cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom;
+  let max=0;datasets.forEach(d=>d.data.forEach(v=>{if(v>max)max=v}));max*=1.15;
+  const scaleY=v=>ch-(v/max)*ch,stepX=cw/(labels.length-1||1);
+  let svg=`<svg viewBox="0 0 ${w} ${h}">`;
+  for(let i=0;i<=4;i++){const y=pad.top+(ch/4)*i;svg+=`<line x1="${pad.left}" y1="${y}" x2="${w-pad.right}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/><text x="${pad.left-6}" y="${y+4}" text-anchor="end" fill="#9ca3af" font-size="10">${Math.round(max-(max/4)*i)}</text>`;}
+  labels.forEach((m,i)=>{svg+=`<text x="${pad.left+stepX*i}" y="${h-6}" text-anchor="middle" fill="#9ca3af" font-size="10">${m}</text>`;});
+  datasets.forEach(d=>{let p=d.data.map((v,i)=>`${i===0?'M':'L'}${pad.left+stepX*i} ${scaleY(v)}`).join(' ');svg+=`<path d="${p}" stroke="${d.color}" stroke-width="2" fill="none"/>`;d.data.forEach((v,i)=>{svg+=`<circle cx="${pad.left+stepX*i}" cy="${scaleY(v)}" r="3" fill="${d.color}"/>`;});});
+  svg+='</svg>';c.innerHTML=svg;
+}
+
+// ====== SUPPLIER DATA ======
+// Full dimension scores (each out of 100)
+const supplierData = [
+  {id:'S001',name:'华强电子', price:88, quality:97, delivery:98, service:92, sustain:95, stage:'成熟', tier:'A', contract:{end:'2027-03-15',type:'年度框架'}, spend:'¥62.4K', since:'2021-06', contact:'张经理 138****0023'},
+  {id:'S002',name:'中芯国际代理', price:82, quality:99, delivery:95, service:88, sustain:90, stage:'成熟', tier:'A', contract:{end:'2026-12-31',type:'年度框架'}, spend:'¥48.2K', since:'2022-03', contact:'李总监 139****4512'},
+  {id:'S003',name:'深圳华富', price:90, quality:94, delivery:92, service:85, sustain:80, stage:'成熟', tier:'A', contract:{end:'2026-09-30',type:'季度协议'}, spend:'¥35.1K', since:'2022-08', contact:'王经理 136****8934'},
+  {id:'S004',name:'广东科泰', price:93, quality:91, delivery:88, service:80, sustain:82, stage:'成长', tier:'B', contract:{end:'2027-01-20',type:'年度框架'}, spend:'¥28.7K', since:'2023-02', contact:'陈总 137****6754'},
+  {id:'S005',name:'上海芯源', price:78, quality:93, delivery:85, service:90, sustain:75, stage:'成熟', tier:'B', contract:{end:'2026-08-15',type:'年度框架'}, spend:'¥22.3K', since:'2022-11', contact:'赵经理 158****2341'},
+  {id:'S006',name:'北京中发', price:85, quality:88, delivery:82, service:76, sustain:78, stage:'成长', tier:'B', contract:{end:'2026-07-31',type:'半年协议'}, spend:'¥18.9K', since:'2023-06', contact:'刘主管 186****9087'},
+  {id:'S007',name:'杭州微电', price:91, quality:85, delivery:78, service:82, sustain:70, stage:'引入', tier:'C', contract:{end:'2026-11-30',type:'试订单'}, spend:'¥15.6K', since:'2024-01', contact:'周经理 188****3456'},
+  {id:'S008',name:'武汉楚天', price:86, quality:80, delivery:75, service:78, sustain:65, stage:'淘汰', tier:'D', contract:{end:'2026-06-30',type:'尾单处理'}, spend:'¥12.4K', since:'2022-05', contact:'吴总 135****7890'},
+  {id:'S009',name:'成都微电', price:76, quality:82, delivery:80, service:74, sustain:68, stage:'淘汰', tier:'D', contract:{end:'2026-07-15',type:'尾单处理'}, spend:'¥8.1K', since:'2021-12', contact:'孙经理 152****5678'},
+  {id:'S010',name:'厦门信达', price:70, quality:78, delivery:72, service:70, sustain:60, stage:'淘汰', tier:'D', contract:{end:'2026-06-20',type:'终止中'}, spend:'¥5.8K', since:'2020-09', contact:'林总 159****4321'},
+  {id:'S011',name:'苏州晶圆', price:84, quality:92, delivery:90, service:86, sustain:88, stage:'引入', tier:'B', contract:{end:'2027-04-30',type:'试订单'}, spend:'¥2.4K', since:'2025-12', contact:'徐总 139****8765'},
+  {id:'S012',name:'东莞丰华', price:80, quality:76, delivery:68, service:72, sustain:55, stage:'引入', tier:'C', contract:{end:'2026-10-31',type:'试订单'}, spend:'¥1.2K', since:'2025-10', contact:'何经理 137****5432'},
+];
+
+// Trend data (last 6 months)
+const trendMonths = ['1月','2月','3月','4月','5月','6月'];
+const supplierTrends = {
+  '华强电子':[91,92,93,94,95,94],'中芯国际代理':[88,89,90,91,92,91],'深圳华富':[87,86,88,89,90,90],
+  '广东科泰':[82,83,85,84,86,87],'上海芯源':[88,87,86,85,84,84],'北京中发':[82,81,80,79,80,83],
+  '杭州微电':[75,76,75,74,76,77],'武汉楚天':[80,78,76,74,72,71],
+  '成都微电':[72,70,69,68,67,66],'厦门信达':[68,65,63,62,61,60],
+  '苏州晶圆':[75,78,82,85,87,88],'东莞丰华':[68,70,72,73,74,74],
+};
+
+// ====== Weights ======
+function getWeights() {
+  return {
+    price: parseInt(document.getElementById('w-price').value)/100,
+    quality: parseInt(document.getElementById('w-quality').value)/100,
+    delivery: parseInt(document.getElementById('w-delivery').value)/100,
+    service: parseInt(document.getElementById('w-service').value)/100,
+    sustain: parseInt(document.getElementById('w-sustain').value)/100,
+  };
+}
+function updateWeights() {
+  const ids=['w-price','w-quality','w-delivery','w-service','w-sustain'];
+  let total=0;ids.forEach(id=>{const v=parseInt(document.getElementById(id).value);total+=v;document.getElementById(id+'-val').textContent=v+'%';});
+  document.getElementById('weightTotal').textContent=total;
+  drawSupplierRanking();
+  drawSupplierOverview();
+  drawLifecycle();
+  drawSupplierTrend();
+  drawRadar();
+}
+function calcScore(s, w) {
+  return Math.round(s.price*w.price + s.quality*w.quality + s.delivery*w.delivery + s.service*w.service + s.sustain*w.sustain);
+}
+function getTier(score) {
+  if(score>=90) return {label:'A',color:'green'};
+  if(score>=80) return {label:'B',color:'blue'};
+  if(score>=70) return {label:'C',color:'yellow'};
+  return {label:'D',color:'red'};
+}
+
+// ====== Draw: Supplier Ranking ======
+function drawSupplierRanking() {
+  const w=getWeights();
+  const ranked = [...supplierData].map(s=>({...s,score:calcScore(s,w),tierObj:getTier(calcScore(s,w))}))
+    .sort((a,b)=>b.score-a.score);
+
+  document.getElementById('supplierRankingTable').innerHTML = `
+    <table>
+      <tr><th>排名</th><th>供应商</th><th>💰报价</th><th>✅品质</th><th>🚚交期</th><th>🤝服务</th><th>🔋可持续</th><th>加权总分</th><th>等级</th><th>阶段</th><th>月采购额</th></tr>
+      ${ranked.map((s,i)=>`
+        <tr class="${s.score<70?'highlight-row':''}">
+          <td>${i+1}</td>
+          <td style="font-weight:500;">${s.name}</td>
+          <td>${s.price}</td>
+          <td>${s.quality}</td>
+          <td>${s.delivery}</td>
+          <td>${s.service}</td>
+          <td>${s.sustain}</td>
+          <td style="font-weight:700;">${s.score}</td>
+          <td><span class="tag ${s.tierObj.color}">${s.tierObj.label}</span></td>
+          <td>${s.stage}</td>
+          <td>${s.spend}</td>
+        </tr>
+      `).join('')}
+    </table>
+  `;
+}
+
+// ====== Draw: Supplier Overview (grade distribution) ======
+function drawSupplierOverview() {
+  const w=getWeights();
+  const grades = supplierData.map(s=>getTier(calcScore(s,w)).label);
+  const counts = {A:0,B:0,C:0,D:0};
+  grades.forEach(g=>counts[g]++);
+  const labels=['A级(≥90)','B级(80-89)','C级(70-79)','D级(<70)'];
+  const vals=[counts.A,counts.B,counts.C,counts.D];
+  const colors=['#10b981','#3b82f6','#f59e0b','#ef4444'];
+
+  const c=document.getElementById('supplierOverviewChart');if(!c)return;
+  const w2=c.offsetWidth-20,h=180,pad={top:20,bottom:30,left:40,right:20};
+  const cw=w2-pad.left-pad.right,ch=h-pad.top-pad.bottom,max=Math.max(...vals,1)*1.3;
+  const barW=cw/labels.length*0.5;
+
+  let svg=`<svg viewBox="0 0 ${w2} ${h}">`;
+  for(let i=0;i<=4;i++){const y=pad.top+(ch/4)*i;svg+=`<line x1="${pad.left}" y1="${y}" x2="${w2-pad.right}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/><text x="${pad.left-6}" y="${y+4}" text-anchor="end" fill="#9ca3af" font-size="10">${Math.round(max-(max/4)*i)}</text>`;}
+  labels.forEach((l,i)=>{const x=pad.left+(cw/labels.length)*i+(cw/labels.length)/2;svg+=`<text x="${x}" y="${h-6}" text-anchor="middle" fill="#9ca3af" font-size="10">${l}</text>`;const bh=(vals[i]/max)*ch;svg+=`<rect x="${x-barW/2}" y="${pad.top+ch-bh}" width="${barW}" height="${bh}" fill="${colors[i]}" opacity="0.85" rx="3"/><text x="${x}" y="${pad.top+ch-bh-6}" text-anchor="middle" fill="#374151" font-size="11" font-weight="700">${vals[i]}</text>`;});
+  svg+='</svg>';c.innerHTML=svg;
+}
+
+// ====== Draw: Supplier Trend ======
+function drawSupplierTrend() {
+  // TOP 6 suppliers by score
+  const w=getWeights();
+  const ranked=[...supplierData].map(s=>({...s,score:calcScore(s,w)})).sort((a,b)=>b.score-a.score).slice(0,6);
+  const colors=['#6c63ff','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
+  const datasets=ranked.map((s,i)=>({data:supplierTrends[s.name]||[s.score-3,s.score-2,s.score-1,s.score,s.score+1,s.score],color:colors[i]}));
+
+  makeLineChart('supplierTrendChart', trendMonths, datasets, {height:180});
+  document.getElementById('trendLegend').innerHTML = ranked.map((s,i)=>`<span class="legend-item"><span class="legend-dot" style="background:${colors[i]}"></span>${s.name}</span>`).join('');
+}
+
+// ====== Draw: Radar ======
+function drawRadar() {
+  const w=getWeights();
+  const ranked=[...supplierData].map(s=>({...s,score:calcScore(s,w)})).sort((a,b)=>b.score-a.score);
+  // pick top 3 + worst 1
+  const selected = [ranked[0],ranked[1],ranked[2],ranked[ranked.length-1]];
+  const dims=['price','quality','delivery','service','sustain'];
+  const dimLabels=['报价','品质','交期','服务','可持续供货'];
+  const colors=['#6c63ff','#10b981','#f59e0b','#ef4444'];
+
+  // Radar selectors
+  document.getElementById('radarSelector').innerHTML = selected.map((s,i)=>`<button class="secondary" style="background:${colors[i]};color:#fff;border:none;opacity:0.8;font-size:11px;padding:4px 12px;">${s.name}</button>`).join('');
+
+  const c=document.getElementById('radarChart');if(!c)return;
+  const size=Math.min(c.offsetWidth-20,300); const cx=size/2,cy=size/2,radius=size/2-30;
+  const angleStep=(Math.PI*2)/dims.length;
+
+  let svg=`<svg viewBox="0 0 ${size} ${size}">`;
+  // grid rings
+  [0.25,0.5,0.75,1].forEach(r=>{let d='';dims.forEach((_,i)=>{const a=-Math.PI/2+i*angleStep;d+=`${i===0?'M':'L'}${cx+r*radius*Math.cos(a)},${cy+r*radius*Math.sin(a)}`;});d+='Z';svg+=`<path d="${d}" fill="none" stroke="#e5e7eb" stroke-width="1"/>`;});
+  // axis lines
+  dims.forEach((_,i)=>{const a=-Math.PI/2+i*angleStep;svg+=`<line x1="${cx}" y1="${cy}" x2="${cx+radius*Math.cos(a)}" y2="${cy+radius*Math.sin(a)}" stroke="#e5e7eb" stroke-width="1"/>`;svg+=`<text x="${cx+(radius+16)*Math.cos(a)}" y="${cy+(radius+16)*Math.sin(a)+4}" text-anchor="middle" fill="#6b7280" font-size="10">${dimLabels[i]}</text>`;});
+  // data
+  selected.forEach((s,di)=>{
+    let d='';dims.forEach((dim,i)=>{const v=s[dim]/100*radius;const a=-Math.PI/2+i*angleStep;d+=`${i===0?'M':'L'}${cx+v*Math.cos(a)},${cy+v*Math.sin(a)}`;});d+='Z';
+    svg+=`<path d="${d}" fill="${colors[di]}" opacity="0.1" stroke="${colors[di]}" stroke-width="1.5"/>`;
+    dims.forEach((dim,i)=>{const v=s[dim]/100*radius;const a=-Math.PI/2+i*angleStep;svg+=`<circle cx="${cx+v*Math.cos(a)}" cy="${cy+v*Math.sin(a)}" r="2.5" fill="${colors[di]}"/>`;});
+  });
+  svg+='</svg>';c.innerHTML=svg;
+}
+
+// ====== Draw: Lifecycle ======
+function drawLifecycle() {
+  const stages=['引入','成长','成熟','淘汰'];
+  const counts={引入:0,成长:0,成熟:0,淘汰:0};
+  supplierData.forEach(s=>counts[s.stage]++);
+  const icons={引入:'🌱',成长:'🌿',成熟:'🌳',淘汰:'🍂'};
+  const colors={引入:'#3b82f6',成长:'#10b981',成熟:'#6c63ff',淘汰:'#ef4444'};
+  const cards = stages.map(s=>`
+    <div style="background:#f8fafc;border-radius:8px;padding:12px;border-left:4px solid ${colors[s]};">
+      <div style="font-weight:600;font-size:14px;">${icons[s]} ${s} (${counts[s]})</div>
+      <div style="font-size:12px;color:#6b7280;margin-top:4px;">
+        ${s==='引入'?'新供应商评估中，已完成资质审核 '+(counts.引入)+' 家':''}
+        ${s==='成长'?'合作>6个月，绩效持续提升，逐步增加份额':''}
+        ${s==='成熟'?'长期稳定合作，A/B 级供应商为主，年度框架协议':''}
+        ${s==='淘汰'?'正在退出，处理尾单中，需完成替代切换':''}
+      </div>
+      <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:${(counts[s]/supplierData.length*100)}%;background:${colors[s]}"></div></div>
+    </div>
+  `).join('');
+  document.getElementById('lifecycleView').innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">${cards}</div>
+    <div style="font-size:11px;color:#9ca3af;margin-top:8px;">💡 建议：淘汰阶段供应商需在 30 天内完成替代，避免供应链中断</div>`;
+}
+
+// ====== Draw: Contract Alerts ======
+function drawContractAlerts() {
+  const alerts = [
+    {type:'contract',title:'武汉楚天 合同即将到期',desc:'合同 2026-06-30 到期 (剩余 13 天)，建议启动供应商替代或续签',urgent:'high'},
+    {type:'contract',title:'厦门信达 合同终止中',desc:'合同 2026-06-20 到期 (剩余 3 天)，尾单处理中',urgent:'high'},
+    {type:'cert',title:'华强电子 ISO9001 即将到期',desc:'认证到期日 2026-07-15，请联系供应商更新证书',urgent:'medium'},
+    {type:'cert',title:'上海芯源 REACH 报告需更新',desc:'合规报告到期日 2026-07-31，已发送提醒',urgent:'medium'},
+    {type:'contract',title:'北京中发 合同到期',desc:'合同 2026-07-31 到期 (剩余 44 天)，建议提前启动续签谈判',urgent:'low'},
+  ];
+  const icons={high:'🔴',medium:'🟡',low:'🟢'};
+  const cls={high:'red',medium:'yellow',low:'green'};
+  document.getElementById('contractAlerts').innerHTML = alerts.slice(0,4).map(a=>`
+    <div class="alert-item">
+      <div class="alert-icon ${cls[a.urgent]}">${a.urgent==='high'?'!':a.urgent==='medium'?'⚠':'ℹ'}</div>
+      <div style="flex:1;"><div style="font-weight:500;font-size:13px;">${a.title}</div><div style="font-size:12px;color:#6b7280;">${a.desc}</div></div>
+    </div>
+  `).join('')+'<div style="font-size:11px;color:#9ca3af;margin-top:8px;">📋 共 5 项待处理 · 点击下方按钮查看全部</div>';
+}
+
+// ====== Overview alerts ======
+function drawOverviewAlerts() {
+  document.getElementById('overviewAlerts').innerHTML = `
+    <div class="alert-item"><div class="alert-icon red">!</div><div style="flex:1;"><div style="font-weight:500;font-size:13px;">武汉楚天 连续 3 月评分下降</div><div style="font-size:12px;color:#6b7280;">D 级评分 71 分 · 建议启动 replacement plan</div></div></div>
+    <div class="alert-item"><div class="alert-icon yellow">⚠</div><div style="flex:1;"><div style="font-weight:500;font-size:13px;">厦门信达 合同 3 天后到期</div><div style="font-size:12px;color:#6b7280;">尾单处理中 · 需确认最后一批交付</div></div></div>
+    <div class="alert-item"><div class="alert-icon yellow">⚠</div><div style="flex:1;"><div style="font-weight:500;font-size:13px;">4 份合同 60 天内到期</div><div style="font-size:12px;color:#6b7280;">涉及 ¥58.6K 采购额 · 建议启动续签计划</div></div></div>
+    <div class="alert-item"><div class="alert-icon blue">ℹ</div><div style="flex:1;"><div style="font-weight:500;font-size:13px;">苏州晶圆 评分快速上升</div><div style="font-size:12px;color:#6b7280;">3 个月从 75 → 88 · 考虑提升合作等级</div></div></div>
+  `;
+}
+
+// ====== Cost analysis charts (same as before but simplified) ======
+function drawTCO() {
+  const labels=['STM32\nF103','IRF520\nMOS','MLCC\n10μF','PCB\n4层','USB\n连接器','LED\n0603'];
+  makeStackedBar('tcoChart', labels, [
+    {data:[100,100,100,100,100,100],color:'#6c63ff'},
+    {data:[18,12,28,15,10,8],color:'#10b981'},
+    {data:[8,6,12,5,4,3],color:'#f59e0b'},
+    {data:[5,8,6,3,2,1],color:'#ef4444'},
+    {data:[3,2,4,2,1,1],color:'#9ca3af'}
+  ],{height:180});
+  const tcoData=[{name:'华强电子',tco:118,score:94},{name:'中芯代理',tco:125,score:91},{name:'深圳华富',tco:132,score:89},{name:'广东科泰',tco:128,score:87},{name:'上海芯源',tco:145,score:85},{name:'北京中发',tco:150,score:83}];
+  document.getElementById('tcoSupplierRank').innerHTML=`<table><tr><th>供应商</th><th>TCO指数</th><th>评分</th></tr>${tcoData.map(s=>`<tr><td>${s.name}</td><td>${s.tco}</td><td><span class="tag ${s.score>=90?'green':s.score>=87?'blue':'yellow'}">${s.score}</span></td></tr>`).join('')}</table><div style="font-size:11px;color:#9ca3af;margin-top:8px;">TCO 指数：采购价=100，越低越好</div>`;
+}
+function drawABC() {
+  const acts=['来料\n检验','采购\n订单','仓储\n管理','供应商\n审核','物流\n协调','品质\n处理'];
+  const costs=[22,18,16,14,12,10];const colors=['#6c63ff','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
+  makeHBar('abcChart',acts,costs,colors,{height:200,suffix:'%'});
+  document.getElementById('abcComparison').innerHTML=`<table><tr><th>项目</th><th>传统分摊</th><th>ABC分摊</th><th>差异</th></tr><tr><td>MLCC 采购价</td><td>¥100.00</td><td>¥100.00</td><td>-</td></tr><tr><td>来料检验</td><td>¥5.00</td><td>¥12.80</td><td><span class="tag red">+¥7.80</span></td></tr><tr><td>仓储管理</td><td>¥5.00</td><td>¥3.20</td><td><span class="tag green">-¥1.80</span></td></tr><tr><td>采购订单</td><td>¥5.00</td><td>¥1.50</td><td><span class="tag green">-¥3.50</span></td></tr><tr><td>供应商管理</td><td>¥5.00</td><td>¥8.40</td><td><span class="tag red">+¥3.40</span></td></tr><tr class="highlight-row"><td><strong>总间接费</strong></td><td><strong>¥20.00</strong></td><td><strong>¥25.90</strong></td><td><strong><span class="tag yellow">+¥5.90</span></strong></td></tr></table><div style="font-size:11px;color:#6b7280;margin-top:8px;padding:8px;background:#fefce8;border-radius:6px;">💡 传统分摊低估了 MLCC 的实际资源消耗。建议重新评估 MLCC 采购策略。</div>`;
+}
+function drawVAVE() {
+  const items=[{label:'MCU',func:9.2,cost:8.5,color:'#f59e0b'},{label:'MLCC',func:8.5,cost:9.2,color:'#f59e0b'},{label:'MOS',func:6.8,cost:9.5,color:'#ef4444'},{label:'PCB',func:5.5,cost:8.0,color:'#ef4444'},{label:'连接器',func:7.5,cost:6.0,color:'#10b981'},{label:'电阻',func:4.0,cost:3.5,color:'#10b981'},{label:'LED',func:3.5,cost:2.8,color:'#10b981'},{label:'二极管',func:5.0,cost:6.5,color:'#ef4444'}];
+  const c=document.getElementById('vaveChart');if(!c)return;const w=c.offsetWidth-20,h=180,pad={top:20,bottom:30,left:40,right:30};const cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom;let svg=`<svg viewBox="0 0 ${w} ${h}">`;[0.25,0.5,0.75,1].forEach(r=>{const ys=pad.top+ch-r*ch;svg+=`<line x1="${pad.left}" y1="${ys}" x2="${pad.left+cw}" y2="${ys}" stroke="#f0f0f0" stroke-width="1"/>`;const xs=pad.left+r*cw;svg+=`<line x1="${xs}" y1="${pad.top}" x2="${xs}" y2="${pad.top+ch}" stroke="#f0f0f0" stroke-width="1"/>`;});[0,2.5,5,7.5,10].forEach((v,i)=>{svg+=`<text x="${pad.left+(cw/4)*i}" y="${h-6}" text-anchor="middle" fill="#9ca3af" font-size="9">${v}</text>`;svg+=`<text x="${pad.left-8}" y="${pad.top+ch-(ch/4)*i+4}" text-anchor="end" fill="#9ca3af" font-size="9">${v}</text>`;});svg+=`<line x1="${pad.left}" y1="${pad.top+ch}" x2="${pad.left+cw}" y2="${pad.top}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="6,3"/>`;items.forEach(item=>{const cx=pad.left+(item.cost/10)*cw,cy=pad.top+ch-(item.func/10)*ch;svg+=`<circle cx="${cx}" cy="${cy}" r="14" fill="${item.color}" opacity="0.15" stroke="${item.color}" stroke-width="1.5"/><text x="${cx}" y="${cy+3}" text-anchor="middle" fill="${item.color}" font-size="7" font-weight="600">${item.label}</text>`;});svg+=`<text x="${pad.left+cw*0.15}" y="${pad.top+ch*0.15}" fill="#10b981" font-size="9" font-weight="600">✨高价值</text><text x="${pad.left+cw*0.65}" y="${pad.top+ch*0.85}" fill="#ef4444" font-size="9" font-weight="600">⚠需优化</text>`;svg+='</svg>';c.innerHTML=svg;
+  document.getElementById('vaveSuggestions').innerHTML=`<div class="alert-item"><div style="background:#fee2e2;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;color:#991b1b;">1</div><div><div style="font-weight:500;font-size:13px;">MOS 管 · VE 替代方案</div><div style="font-size:12px;color:#6b7280;">IRF520 可用国产替代料，成本降低 30%，功能评分维持 6.0+<br><span class="tag green">预计节约 ¥2.85/pcs</span></div></div></div><div class="alert-item"><div style="background:#fee2e2;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;color:#991b1b;">2</div><div><div style="font-weight:500;font-size:13px;">PCB · 功能降级分析</div><div style="font-size:12px;color:#6b7280;">4 层→2 层设计变更，功能评分影响仅 -0.8，成本降低 35%<br><span class="tag green">预计节约 ¥2.80/pcs</span></div></div></div><div class="alert-item"><div style="background:#fef3c7;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;color:#92400e;">3</div><div><div style="font-weight:500;font-size:13px;">二极管 · 标准化整合</div><div style="font-size:12px;color:#6b7280;">3 种不同封装整合为 1 种通用料，降低 SKU 复杂度<br><span class="tag yellow">预计节约 ¥1.20/pcs</span></div></div></div>`;
+}
+function drawBOM() {
+  document.getElementById('bomTable').innerHTML=`<table><tr><th>层级</th><th>料号/名称</th><th>用量</th><th>单价</th><th>小计</th><th>占比</th></tr><tr style="background:#f5f3ff;font-weight:600;"><td>L0</td><td>智能控制器 成品</td><td>1</td><td>¥86.50</td><td>¥86.50</td><td>100%</td></tr><tr><td>L1</td><td>└ 主控板组件</td><td>1</td><td>¥42.30</td><td>¥42.30</td><td>48.9%</td></tr><tr><td>L2</td><td>&emsp;└ MCU STM32F103</td><td>1</td><td>¥18.50</td><td>¥18.50</td><td>21.4%</td></tr><tr><td>L2</td><td>&emsp;└ MLCC 电容 ×8</td><td>8</td><td>¥0.65</td><td>¥5.20</td><td>6.0%</td></tr><tr><td>L2</td><td>&emsp;└ 连接器 排针</td><td>2</td><td>¥1.20</td><td>¥2.40</td><td>2.8%</td></tr><tr><td>L2</td><td>&emsp;└ 电阻 0603 ×12</td><td>12</td><td>¥0.08</td><td>¥0.96</td><td>1.1%</td></tr><tr><td>L2</td><td>&emsp;└ PCB 4 层板</td><td>1</td><td>¥8.00</td><td>¥8.00</td><td>9.2%</td></tr><tr><td>L2</td><td>&emsp;└ 其他</td><td>-</td><td>-</td><td>¥7.24</td><td>8.4%</td></tr><tr><td>L1</td><td>└ 电源模块组件</td><td>1</td><td>¥28.60</td><td>¥28.60</td><td>33.1%</td></tr><tr><td>L2</td><td>&emsp;└ MOS 管 IRF520</td><td>3</td><td>¥3.20</td><td>¥9.60</td><td>11.1%</td></tr><tr><td>L2</td><td>&emsp;└ 电解电容</td><td>2</td><td>¥1.80</td><td>¥3.60</td><td>4.2%</td></tr><tr><td>L2</td><td>&emsp;└ 其他</td><td>-</td><td>-</td><td>¥15.40</td><td>17.8%</td></tr><tr><td>L1</td><td>└ 结构件/外壳</td><td>1</td><td>¥8.60</td><td>¥8.60</td><td>9.9%</td></tr><tr><td>L1</td><td>└ 包装/附件</td><td>1</td><td>¥7.00</td><td>¥7.00</td><td>8.1%</td></tr></table><div style="font-size:11px;color:#9ca3af;margin-top:8px;">💡 TOP 3 料号（MCU+MOS+PCB）占总成本 41.7%</div>`;
+  const items=[{label:'MCU',pct:21.4},{label:'MOS管',pct:11.1},{label:'外壳',pct:9.9},{label:'PCB',pct:9.2},{label:'其他',pct:48.4}];
+  const c=document.getElementById('bomPareto');if(!c)return;const w=c.offsetWidth-20,h=180,pad={top:20,bottom:30,left:40,right:20};const cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom,barW=cw/items.length*0.6;let svg=`<svg viewBox="0 0 ${w} ${h}">`;items.forEach((item,i)=>{const x=pad.left+(cw/items.length)*i+(cw/items.length-barW)/2,bh=(item.pct/100)*ch;const color=i<1?'#ef4444':i<3?'#f59e0b':'#6c63ff';svg+=`<rect x="${x}" y="${pad.top+ch-bh}" width="${barW}" height="${bh}" fill="${color}" opacity="0.8" rx="2"/><text x="${x+barW/2}" y="${pad.top+ch+14}" text-anchor="middle" fill="#4b5563" font-size="9">${item.label}</text><text x="${x+barW/2}" y="${pad.top+ch-bh-4}" text-anchor="middle" fill="#374151" font-size="9" font-weight="600">${item.pct}%</text>`;});svg+='</svg>';c.innerHTML=svg;
+}
+function drawTarget() {
+  const labels=['MCU','MOS','PCB\n(4层)','MLCC','连接器','外壳','其他','合计'];
+  const cur=[18.5,9.6,8.0,5.2,2.4,8.6,120.9,173.2];
+  const tgt=[16.0,7.2,5.2,4.5,2.2,7.5,106.65,149.25];
+  makeGroupedBar('targetChart',labels,[{data:cur,color:'#ef4444'},{data:tgt,color:'#10b981'}],{height:180});
+  document.getElementById('targetPath').innerHTML=`<table><tr><th>降本路径</th><th>节约</th><th>方法</th><th>周期</th><th>状态</th></tr><tr><td>MCU 替代方案</td><td style="color:#10b981;font-weight:600;">-¥2.50</td><td>兼容型号替代</td><td>1-2月</td><td><span class="tag yellow">进行中</span></td></tr><tr><td>MOS 管 VE 优化</td><td style="color:#10b981;font-weight:600;">-¥2.40</td><td>国产替代+设计变更</td><td>2-3月</td><td><span class="tag yellow">进行中</span></td></tr><tr><td>PCB 层数降级</td><td style="color:#10b981;font-weight:600;">-¥2.80</td><td>4 层→2 层</td><td>3-4月</td><td><span class="tag blue">评估中</span></td></tr><tr><td>MLCC 供应商切换</td><td style="color:#10b981;font-weight:600;">-¥0.70</td><td>本土供应商替代</td><td>1月</td><td><span class="tag green">已批准</span></td></tr><tr><td>其他 BOM 优化</td><td style="color:#10b981;font-weight:600;">-¥3.55</td><td>标准化/批量折扣等</td><td>1-3月</td><td><span class="tag green">已批准</span></td></tr><tr class="highlight-row"><td><strong>合计节约</strong></td><td style="color:#10b981;font-weight:700;">-¥11.95</td><td colspan="3"><strong>差距 ¥23.95，还需挖掘 ¥12.00</strong></td></tr></table><div style="font-size:11px;color:#6b7280;margin-top:8px;padding:8px;background:#f5f3ff;border-radius:6px;">💡 目标成本达成率 73%。建议开展跨部门 VA/VE 工作坊。</div>`;
+}
+
+// ====== Draw all ======
+function drawAll() {
+  if(document.getElementById('tab-overview').classList.contains('active')){drawSupplierOverview();drawOverviewAlerts();}
+  if(document.getElementById('tab-supplier').classList.contains('active')){drawSupplierRanking();drawSupplierOverview();drawLifecycle();drawContractAlerts();drawSupplierTrend();drawRadar();}
+  if(document.getElementById('tab-tco').classList.contains('active')){drawTCO();}
+  if(document.getElementById('tab-abc').classList.contains('active')){drawABC();}
+  if(document.getElementById('tab-vave').classList.contains('active')){drawVAVE();}
+  if(document.getElementById('tab-bom').classList.contains('active')){drawBOM();}
+  if(document.getElementById('tab-target').classList.contains('active')){drawTarget();}
+}
+
+// ====== Init ======
+drawAll();
+window.addEventListener('resize',()=>drawAll());
+</script>
+</body>
+</html>
